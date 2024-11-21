@@ -9,13 +9,17 @@ import { fetchAPI } from "@/lib/fetch";
 import DropDownPicker from "react-native-dropdown-picker";
 import CustomDropDownPicker from "@/components/CustomDropDownPicker";
 import { fetchDogBreeds } from "@/lib/fetchBreeds";
+import BreedSelector from "@/components/BreedSelector";
+import Slider from '@react-native-community/slider';
+
+
 
 
 
 const SignUp = () => {
     const { isLoaded, signUp, setActive } = useSignUp();
     const router = useRouter();
-    const [step, setStep] = useState(8);
+    const [step, setStep] = useState(1);
     const [form, setForm] = useState({
         name: "",
         email: "",
@@ -26,6 +30,7 @@ const SignUp = () => {
         birthYear: "",
         breed: "",
         image: null,
+        activityLevel: 50,
     });
 
     const getMonthNumber = (monthName: string): string => {
@@ -139,37 +144,97 @@ const SignUp = () => {
 
     const onSubmitName = async () => {
         if (!form.name.trim()) {
-            Alert.alert("Помилка", "Будь ласка, введіть своє ім'я.");
-            return;
+          Alert.alert("Помилка", "Будь ласка, введіть своє ім'я.");
+          return;
         }
-
-        if (!clerkId || !form.email || !form.name || !form.birthDay || !form.birthMonth || !form.birthYear) {
-            Alert.alert("Помилка", "Всі поля повинні бути заповнені.");
-            return;
+      
+        if (
+          !clerkId ||
+          !form.email ||
+          !form.name ||
+          !form.birthDay ||
+          !form.birthMonth ||
+          !form.birthYear ||
+          !form.breed ||
+          !form.activityLevel
+        ) {
+          Alert.alert("Помилка", "Всі поля повинні бути заповнені.");
+          return;
         }
-
+      
         try {
-            const formattedBirthDate = formatDate();
-            console.log("Дата рождения:", formattedBirthDate);
+          const formattedBirthDate = formatDate();
+          console.log("Дата рождения:", formattedBirthDate);
 
-            await fetchAPI("/(api)/user", {
-                method: "POST",
-                body: JSON.stringify({
-                    name: form.name,
-                    email: form.email,
-                    clerkId: clerkId,
-                    gender: form.gender,
-                    birthDate: formattedBirthDate,
-                }),
-            });
+          console.log("Отправка данных:", JSON.stringify({
+            name: form.name,
+            email: form.email,
+            clerkId: clerkId,
+            gender: form.gender,
+            birthDate: formattedBirthDate,
+            breed: form.breed,
+            image: form.image || null,
+            activityLevel: form.activityLevel,
+          }));
 
-            await setActive({ session: signUp.createdSessionId });
-            Alert.alert('Успіх', 'Реєстрація завершена');
-            router.push("/(root)/(tabs)/home");
+          const API_BASE_URL = "https://51.20.81.147:3000";
+
+          await fetchAPI(`${API_BASE_URL}/api/user`, {
+            method: "POST",
+            body: JSON.stringify({
+              name: form.name,
+              email: form.email,
+              clerkId: clerkId,
+              gender: form.gender,
+              birthDate: formattedBirthDate,
+              breed: form.breed,
+              image: form.image || null,
+              activityLevel: form.activityLevel,
+            }),
+          });
+{/*           
+      
+          // Создание пользователя
+          await fetchAPI("/(api)/user", {
+            method: "POST",
+            body: JSON.stringify({
+              name: form.name,
+              email: form.email,
+              clerkId: clerkId,
+              gender: form.gender,
+              birthDate: formattedBirthDate,
+              image: form.image || null, // Поддержка необязательного поля
+            }),
+          });
+      
+          // Создание собаки
+          await fetchAPI("/(api)/dog", {
+            method: "POST",
+            body: JSON.stringify({
+              clerkId: clerkId,
+              breed: form.breed,
+              age: form.birthYear
+                ? parseInt(new Date().getFullYear() - form.birthYear)
+                : null, // Рассчитываем возраст
+              weight: form.weight || null, // Вес необязателен
+              emotionalStatus: form.emotionalStatus || 5, // Эмоциональное состояние по умолчанию
+              activityLevel: form.activityLevel,
+              vaccinationStatus: {
+                rabies: true,
+                distemper: true,
+              },
+              antiTick: true, // Противоклещевой статус
+            }),
+          });
+      */}
+          await setActive({ session: signUp.createdSessionId });
+          Alert.alert("Успіх", "Реєстрація завершена");
+          router.push("/(root)/(tabs)/home");
         } catch (err: any) {
-            Alert.alert('Error', err.message || 'Something went wrong');
+          Alert.alert("Error", err.message || "Something went wrong");
         }
-    };
+      };
+      
 
     const renderDatePicker = () => {
         const days = Array.from({ length: 31 }, (_, i) => (i + 1).toString());
@@ -270,6 +335,8 @@ const SignUp = () => {
         };
         fetchBreedsData();
     }, []);
+
+    const [activityLevel, setActivityLevel] = useState(50);
 
     return (
         <View className="flex-1 bg-white justify-between">
@@ -520,45 +587,53 @@ const SignUp = () => {
                     <Text className="text-2xl text-black font-JakartaSemiBold mb-2">
                         Яка порода {form.name}?
                     </Text>
-                    <Text className="text-neutral-400 mb-6">
+                    <Text className="text-neutral-400">
                         Виберіть породу вашого улюбленця для підбору найбільш відповідних друзів.
                     </Text>
                     </View>
+                    <Text className="text-lg font-medium text-black mb-4">
+                        Порода
+                    </Text>
 
                     <View>
-                    <CustomDropDownPicker
-    open={openBreedPicker}
-    setOpen={setOpenBreedPicker}
-    value={form.breed}
-    setValue={(value) => setForm({ ...form, breed: value })}
-    items={breeds}
-    placeholder="Порода"
-    searchable={true} // Включение поиска
-    searchPlaceholder="Введіть породу" // Текст в строке поиска
-    searchTextInputProps={{
-        autoFocus: true, // Для активации клавиатуры при открытии
-        style: {
-            height: 40, 
-            color: "black",
-            fontSize: 18,
-        },
-    }}
-    style={{
-        borderColor: "black",
-        borderWidth: 1,
-        borderRadius: 8,
-    }}
-    dropDownContainerStyle={{
-        borderColor: "black",
-        borderWidth: 1,
-        borderRadius: 8,
-    }}
-/>
-
+                    <BreedSelector
+                        items={breeds}
+                        placeholder="Мопс"
+                        value={form.breed}
+                        onChangeValue={(value) => setForm({ ...form, breed: value })}
+                    />
 
                     </View>
                 </View>
             )}
+            {step === 9 && (
+        <View className="p-5">
+            <View className="p-5 mt-[183px] mb-[24px]">
+          <Text className="text-2xl font-bold mb-4">Який рівень активності {form.name}?</Text>
+          <Text className="text-gray-600 mb-8">
+            Це допоможе в пошуку найкращих друзів.
+          </Text>
+          </View>
+
+          <View className="items-center">
+            <Slider
+              style={{ width: "100%", height: 40 }}
+              minimumValue={0}
+              maximumValue={100}
+              step={1}
+              value={activityLevel}
+              minimumTrackTintColor="#FF6C22"
+              maximumTrackTintColor="#E5E5E5"
+              thumbTintColor="#FF6C22"
+              onValueChange={(value) => setActivityLevel(value)}
+            />
+            <View className="flex-row justify-between w-full mt-4">
+              <Text className="text-gray-600">Дуже низький</Text>
+              <Text className="text-gray-600">Дуже високий</Text>
+            </View>
+          </View>
+        </View>
+      )}
 
             </ScrollView>
             </KeyboardAvoidingView>
@@ -670,7 +745,22 @@ const SignUp = () => {
                     </View>
                 </TouchableOpacity>
             )}
-            {step === 8 && (
+             {step === 8 && (
+                <TouchableOpacity
+                onPress={() => setStep(9)}
+                className="absolute bottom-[35px] left-0 right-0 mx-5 bg-[#FF6C22] rounded-full p-4 flex flex-row justify-center items-center"
+            >
+                <Text className="text-white text-lg font-JakartaSemiBold">Продовжити</Text>
+                <View className="absolute right-[20px]">
+                <icons.ArrowRight
+                    className="text-white" 
+                    width={20} 
+                    height={20}
+                />
+                </View>
+            </TouchableOpacity>
+            )}
+            {step === 9 && (
                 <TouchableOpacity
                     onPress={onSubmitName}
                     className="absolute bottom-[35px] left-0 right-0 mx-5 bg-[#FF6C22] rounded-full p-4 flex flex-row justify-center items-center"

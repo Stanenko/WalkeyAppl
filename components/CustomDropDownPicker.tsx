@@ -1,39 +1,96 @@
+import React, { useState, useEffect } from "react";
 import DropDownPicker, { DropDownPickerProps } from "react-native-dropdown-picker";
 
 type CustomDropDownPickerProps<T extends string | number | boolean> = DropDownPickerProps<T> & {
   placeholder?: string;
+  searchable?: boolean; // Включение режима поиска
 };
 
 const CustomDropDownPicker = <T extends string | number | boolean>({
   placeholder = "Выберите значение",
-  searchable = false, // Разрешение на ввод текста
-  searchPlaceholder = "Введите текст", // Плейсхолдер для поиска
-  searchTextInputProps = {}, // Дополнительные свойства для поля ввода
+  searchable = false, // По умолчанию режим поиска выключен
   ...props
 }: CustomDropDownPickerProps<T>) => {
+  const [inputValue, setInputValue] = useState(""); // Введенное значение (для поиска)
+  const [filteredItems, setFilteredItems] = useState(props.items || []); // Отфильтрованные элементы
+
+  // Обновление отфильтрованных элементов при изменении ввода
+  useEffect(() => {
+    if (searchable) {
+      const lowerCaseInput = inputValue.toLowerCase();
+      setFilteredItems(
+        (props.items || []).filter((item) =>
+          item.label.toLowerCase().includes(lowerCaseInput)
+        )
+      );
+    }
+  }, [inputValue, props.items, searchable]);
+
   return (
     <DropDownPicker
       placeholder={placeholder}
-      searchable={searchable}
-      searchPlaceholder={searchPlaceholder}
-      searchTextInputProps={searchTextInputProps}
-      {...props}
+      maxHeight={200}
       style={{
-        backgroundColor: "white",
-        borderColor: "gray",
-        borderWidth: 1,
-        borderRadius: 8,
+        backgroundColor: "transparent",
+        borderColor: "transparent",
+        paddingHorizontal: 10,
+        borderWidth: 0,
       }}
       placeholderStyle={{
-        color: "gray",
+        color: "black",
         fontSize: 18,
+        fontWeight: "bold",
+        textAlign: "left",
+      }}
+      textStyle={{
+        fontSize: 18,
+        fontWeight: "bold",
+        color: "black",
       }}
       dropDownContainerStyle={{
-        borderColor: "gray",
-        borderWidth: 1,
-        borderRadius: 8,
+        borderWidth: 0,
         backgroundColor: "white",
+        shadowColor: "rgba(0, 0, 0, 0.1)",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 5,
+        elevation: 5,
       }}
+      listItemLabelStyle={{
+        fontSize: 18,
+        fontWeight: "400",
+        paddingVertical: 10,
+      }}
+      selectedItemContainerStyle={{
+        backgroundColor: "#f0f0f0",
+      }}
+      arrowIconStyle={{
+        width: 20,
+        height: 20,
+      }}
+      arrowIconContainerStyle={{
+        justifyContent: "center",
+        alignItems: "center",
+      }}
+      showTickIcon={false}
+      {...props}
+      items={searchable ? filteredItems : props.items} // Используем фильтрованные элементы, если включен режим поиска
+      searchTextInputProps={
+        searchable
+          ? {
+              style: {
+                height: "100%",
+                color: "black",
+                fontSize: 18,
+                paddingHorizontal: 10,
+              },
+              value: inputValue,
+              placeholder: placeholder,
+              placeholderTextColor: "gray",
+              onChangeText: setInputValue, // Обновляем введенное значение
+            }
+          : undefined
+      }
     />
   );
 };
