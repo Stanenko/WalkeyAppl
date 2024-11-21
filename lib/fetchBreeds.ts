@@ -1,21 +1,149 @@
-    const capitalize = (str) => {
-        return str.replace(/\b\w/g, char => char.toUpperCase());
-    };
-  
-  export const fetchDogBreeds = async () => {
-    try {
-      const response = await fetch('https://dog.ceo/api/breeds/list/all');
-      const data = await response.json();
-  
-      if (data.status === 'success') {
-        return Object.keys(data.message).map(breed => capitalize(breed));
-      } else {
-        console.error('Ошибка при получении списка пород:', data);
-        return [];
-      }
-    } catch (error) {
-      console.error('Ошибка при запросе к Dog CEO API:', error);
+const capitalize = (str) => {
+  return str.replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
+const breedTranslations = {
+  affenpinscher: "Аффенпінчер",
+  african: "Африканська",
+  airedale: "Ердельтер'єр",
+  akita: "Акіта",
+  appenzeller: "Аппенцеллер",
+  australian: "Австралійська вівчарка",
+  basenji: "Басенджі",
+  beagle: "Бігль",
+  bluetick: "Блу-тік кунхаунд",
+  borzoi: "Борзая",
+  bouvier: "Був'є",
+  boxer: "Боксер",
+  brabancon: "Брабансонський гриффон",
+  briard: "Бріар",
+  bulldog: "Бульдог",
+  bullterrier: "Бультер'єр",
+  cairn: "Керн-тер'єр",
+  cattledog: "Пастуший собака",
+  chihuahua: "Чихуахуа",
+  chow: "Чау-чау",
+  clumber: "Кламбер-спанієль",
+  cockapoo: "Кокапу",
+  collie: "Коллі",
+  coonhound: "Кунхаунд",
+  corgi: "Коргі",
+  cotondetulear: "Котон-де-тулеар",
+  dachshund: "Такса",
+  dalmatian: "Далматинець",
+  dane: "Датський дог",
+  deerhound: "Дірхаунд",
+  dhole: "Дхоле",
+  dingo: "Дінго",
+  doberman: "Доберман",
+  elkhound: "Елькхаунд",
+  entlebucher: "Ентлебухер зенненхунд",
+  eskimo: "Ескімоська собака",
+  finnish: "Фінський шпіц",
+  frise: "Фрізе",
+  germanshepherd: "Німецька вівчарка",
+  greyhound: "Грейхаунд",
+  groenendael: "Грюнендаль (бельгійська вівчарка)",
+  hound: "Гончак",
+  husky: "Хаскі",
+  keeshond: "Кеесхонд",
+  kelpie: "Келпі",
+  komondor: "Комондор",
+  kuvasz: "Кувасс",
+  labradoodle: "Лабрадудль",
+  labrador: "Лабрадор",
+  leonberg: "Леонбергер",
+  lhasa: "Лхаса апсо",
+  malamute: "Маламут",
+  malinois: "Малінуа",
+  maltese: "Мальтійська болонка",
+  mastiff: "Мастиф",
+  mexicanhairless: "Мексиканський голий собака",
+  mix: "Метис",
+  mountain: "Гірський собака",
+  newfoundland: "Ньюфаундленд",
+  otterhound: "Оттерхаунд",
+  papillon: "Папільйон",
+  pekinese: "Пекінес",
+  pembroke: "Пемброк вельш-коргі",
+  pinscher: "Пінчер",
+  pitbull: "Пітбуль",
+  pointer: "Пойнтер",
+  pomeranian: "Померанський шпіц",
+  poodle: "Пудель",
+  pug: "Мопс",
+  puggle: "Паггл",
+  pyrenees: "Піренейська вівчарка",
+  redbone: "Редбоун кунхаунд",
+  retriever: "Ретривер",
+  ridgeback: "Риджбек",
+  rottweiler: "Ротвейлер",
+  saluki: "Салюки",
+  samoyed: "Самоєд",
+  schipperke: "Шипперке",
+  schnauzer: "Шнауцер",
+  setter: "Сеттер",
+  sheepdog: "Кундель (пастуший собака)",
+  shiba: "Шиба-іну",
+  shihtzu: "Ши-тцу",
+  spaniel: "Спанієль",
+  springer: "Спрінгер-спанієль",
+  spitz: "Шпиць",
+  stbernard: "Сенбернар",
+  terrier: "Терьєр",
+  vizsla: "Візсла",
+  weimaraner: "Веймаранер",
+  whippet: "Віпет",
+  wolfhound: "Вовкодав",
+  bakharwal: "Бакхарвал",
+  buhund: "Бухунд",
+  cavapoo: "Кавапу",
+  chippiparai: "Чіппіпарай",
+  danish: "Датський",
+  gaddi: "Гадді",
+  havanese: "Гаванська болонка",
+  kombai: "Комбай",
+  mudhol: "Мудхольський хорт",
+  ovcharka: "Вівчарка",
+  pariah: "Парія",
+  rajapalayam: "Раджапалаям",
+  segugio: "Сегуджіо",
+  sharpei: "Шарпей",
+  splitz: "Шпіц",
+  tervuren: "Тервюрен",
+  waterdog: "Водяний собака",
+  americanbully: "Американський буллі",
+  canecorso: "Кане-корсо",
+  shetlandsheepdog: "Шетландська вівчарка",
+  bassethound: "Басет-гаунд",
+  bedlingtonterrier: "Бедлінгтон-тер'єр",
+  americancockerspaniel: "Американський кокер-спанієль",
+  pharaohhound: "Фараонова собака",
+  toypoodle: "Той-пудель",
+  kingcharlesspaniel: "Кінг-чарльз спанієль",
+  englishpointer: "Англійський пойнтер",
+  swissshepherd: "Швейцарська вівчарка",
+  wheaten: "Пшеничний тер'єр",
+};
+
+export const fetchDogBreeds = async () => {
+  try {
+    const response = await fetch("https://dog.ceo/api/breeds/list/all");
+    const data = await response.json();
+
+    if (data.status === "success") {
+      return Object.keys(data.message)
+        .map((breed) => {
+          const translatedBreed = breedTranslations[breed.toLowerCase()];
+          return translatedBreed ? capitalize(translatedBreed) : capitalize(breed); // Используем перевод или оригинал
+        })
+        .sort((a, b) => a.localeCompare(b)); // Сортировка по алфавиту
+    } else {
+      console.error("Ошибка при получении списка пород:", data);
       return [];
     }
-  };
-  
+  } catch (error) {
+    console.error("Ошибка при запросе к Dog CEO API:", error);
+    return [];
+  }
+};
