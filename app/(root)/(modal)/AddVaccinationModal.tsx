@@ -10,23 +10,24 @@ const AddVaccinationModal = ({ isVisible, onClose, onAddRecord }) => {
   const [lastDate, setLastDate] = useState('');
   const [nextDate, setNextDate] = useState('');
 
-  const handleAddRecord = () => {
-    // Проверяем, что все поля заполнены
+  const handleAddRecord = async () => {
     if (!name || !lastDate || !nextDate) {
       Alert.alert('Ошибка', 'Пожалуйста, заполните все поля');
       return;
     }
 
-    // Форматируем данные для добавления
     const recordData = { type, name, lastDate, nextDate };
-
-    // Вызываем функцию для добавления записи и закрываем модальное окно
-    onAddRecord(recordData);
-    onClose();
-    // Сбрасываем значения полей
-    setName('');
-    setLastDate('');
-    setNextDate('');
+    try {
+      console.log('Данные для добавления:', recordData);
+      await onAddRecord(recordData); // Вызываем функцию для добавления записи
+      onClose();
+      setName('');
+      setLastDate('');
+      setNextDate('');
+    } catch (error) {
+      console.error('Error in handleAddRecord:', error);
+      Alert.alert('Ошибка', 'Не удалось добавить запись');
+    }
   };
 
   return (
@@ -48,44 +49,57 @@ const AddVaccinationModal = ({ isVisible, onClose, onAddRecord }) => {
             <Text style={{ fontSize: 18 }}>✕</Text>
           </TouchableOpacity>
           <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 20 }}>Нова запис</Text>
-          
-          <Text style={{ marginBottom: 5 }}>Тип</Text>
-          <Picker
-            selectedValue={type}
-            style={{ height: 50, width: '100%' }}
-            onValueChange={(itemValue) => setType(itemValue)}
-          >
-            <Picker.Item label="Вакцинація" value="vaccination" />
-            <Picker.Item label="Захист" value="protection" />
-          </Picker>
 
           <Text style={{ marginBottom: 5 }}>Назва</Text>
-          <TextInput 
-            placeholder="Введите название" 
-            value={name} 
-            onChangeText={setName} 
-            style={{ borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 10, marginBottom: 15 }} 
+          <TextInput
+            placeholder="Введите название"
+            value={name}
+            onChangeText={setName}
+            style={{
+              borderWidth: 1,
+              borderColor: '#ddd',
+              borderRadius: 8,
+              padding: 10,
+              marginBottom: 15,
+            }}
           />
 
           <Text style={{ marginBottom: 5 }}>Дата</Text>
-          <TextInput 
-            placeholder="MM/DD/YYYY" 
-            value={lastDate} 
-            onChangeText={setLastDate} 
-            style={{ borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 10, marginBottom: 15 }} 
+          <TextInput
+            placeholder="MM/DD/YYYY"
+            value={lastDate}
+            onChangeText={setLastDate}
+            style={{
+              borderWidth: 1,
+              borderColor: '#ddd',
+              borderRadius: 8,
+              padding: 10,
+              marginBottom: 15,
+            }}
           />
 
           <Text style={{ marginBottom: 10 }}>Наступна дата</Text>
-          <TextInput 
-            placeholder="MM/DD/YYYY" 
-            value={nextDate} 
-            onChangeText={setNextDate} 
-            style={{ borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 10, marginBottom: 20 }} 
+          <TextInput
+            placeholder="MM/DD/YYYY"
+            value={nextDate}
+            onChangeText={setNextDate}
+            style={{
+              borderWidth: 1,
+              borderColor: '#ddd',
+              borderRadius: 8,
+              padding: 10,
+              marginBottom: 20,
+            }}
           />
 
           <TouchableOpacity
             onPress={handleAddRecord}
-            style={{ backgroundColor: '#FF6C22', borderRadius: 10, padding: 15, alignItems: 'center' }}
+            style={{
+              backgroundColor: '#FF6C22',
+              borderRadius: 10,
+              padding: 15,
+              alignItems: 'center',
+            }}
           >
             <Text style={{ color: 'white', fontWeight: 'bold' }}>Додати</Text>
           </TouchableOpacity>

@@ -177,10 +177,16 @@ const SignUp = () => {
             activityLevel: form.activityLevel,
           }));
 
-          const API_BASE_URL = "https://51.20.81.147:3000";
+          const API_BASE_URL =
+            process.env.NODE_ENV === "development"
+                ? "http://192.168.0.29:3000" // Локальный сервер
+                : "http://51.20.81.147:3000"; // Сервер AWS
 
-          await fetchAPI(`${API_BASE_URL}/api/user`, {
+            await fetch(`${API_BASE_URL}/api/user`, {
             method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+              },
             body: JSON.stringify({
               name: form.name,
               email: form.email,

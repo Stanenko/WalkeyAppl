@@ -34,7 +34,8 @@ const TabsLayout = () => (
       tabBarShowLabel: false,
       tabBarStyle: {
         borderRadius: 50,
-        paddingBottom: 10,
+        paddingBottom: 5,
+        paddingTop: 10,
         height: 80,
         backgroundColor: "#FBFBFB",
         position: "absolute",

@@ -23,12 +23,14 @@ import noResult from "@/assets/images/no-result.png";
 
 import welcomeLogo from "@/assets/images/welcomeLogo.png";
 import YourDog from "@/assets/images/your-dog.png";
+import OtherDogs from "@/assets/images/other-dogs.png";
 
 export const images = {
     noResult,
     message,
     welcomeLogo,
     YourDog,
+    OtherDogs,
 };
 
 export const icons = {
