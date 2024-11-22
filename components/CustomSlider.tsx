@@ -20,8 +20,8 @@ const CustomSlider: React.FC<CustomSliderProps> = ({
   const [currentMinValue, setCurrentMinValue] = useState(minValue);
   const [currentMaxValue, setCurrentMaxValue] = useState(maxValue);
 
-  const panMinValue = useRef(0); // Track min slider value
-  const panMaxValue = useRef(sliderWidth); // Track max slider value
+  const panMinValue = useRef(0); 
+  const panMaxValue = useRef(sliderWidth); 
 
   const calculateValue = (position: number) => {
     const ratio = position / sliderWidth;
@@ -36,7 +36,7 @@ const CustomSlider: React.FC<CustomSliderProps> = ({
           Math.max(gestureState.dx, 0),
           panMaxValue.current - 40
         );
-        panMinValue.current = newValue; // Update the tracked value
+        panMinValue.current = newValue; 
         const calculatedValue = calculateValue(newValue);
 
         Animated.timing(panMin, {
@@ -63,7 +63,7 @@ const CustomSlider: React.FC<CustomSliderProps> = ({
           Math.min(gestureState.dx + panMinValue.current, sliderWidth),
           panMinValue.current + 40
         );
-        panMaxValue.current = newValue; // Update the tracked value
+        panMaxValue.current = newValue; 
         const calculatedValue = calculateValue(newValue);
 
         Animated.timing(panMax, {

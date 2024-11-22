@@ -4,7 +4,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 const SterilizationToggle = ({ isSterilized, setIsSterilized, gender, isInHeat, setIsInHeat }) => {
   return (
     <View>
-      {/* Блок с "Кастрація / стерилізація" */}
+   
       <View style={styles.row}>
         <Text style={styles.label}>Кастрація / стерилізація</Text>
         <View style={styles.toggleContainer}>
@@ -33,7 +33,7 @@ const SterilizationToggle = ({ isSterilized, setIsSterilized, gender, isInHeat, 
         </View>
       </View>
 
-      {/* Блок с "Течка зараз", отображается только для female */}
+     
       {gender === 'female' && (
         <View style={styles.row}>
           <Text style={styles.label}>Течка зараз</Text>

@@ -22,4 +22,5 @@ export const useLocationStore = create<LocationStore>((set) => ({
             destinationLongitude: longitude,
             destinationAddress: address,
         }),
+        
 }));

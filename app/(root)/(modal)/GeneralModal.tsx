@@ -4,7 +4,9 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { useUser } from "@clerk/clerk-expo";
 import * as ImagePicker from "expo-image-picker";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { icons } from "@/constants/svg"; // Импорт иконок
+import { icons } from "@/constants/svg"; 
+import { getServerUrl } from "@/utils/getServerUrl";
+
 
 const GeneralModal = ({ isVisible, onClose }) => {
   const { user } = useUser();
@@ -16,11 +18,11 @@ const GeneralModal = ({ isVisible, onClose }) => {
     const fetchUserData = async () => {
       if (!user || !user.id) return;
       try {
-        const response = await fetch(`http://192.168.0.29:3000/api/user?clerkId=${user.id}`);
+        const response = await fetch(`${getServerUrl()}/api/user?clerkId=${user.id}`);
         const data = await response.json();
         if (response.ok) {
           setBirthDate(data.birth_date || "");
-          setImage(data.image || "https://via.placeholder.com/150"); // Дефолтное фото
+          setImage(data.image || "https://via.placeholder.com/150"); 
         } else {
           console.error("Ошибка сервера:", data.error);
         }
@@ -36,7 +38,7 @@ const GeneralModal = ({ isVisible, onClose }) => {
 
   const updateBirthDate = async (newDate) => {
     try {
-      const response = await fetch(`http://192.168.0.29:3000/api/user`, {
+      const response = await fetch(`${getServerUrl()}/api/user`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -92,7 +94,7 @@ const GeneralModal = ({ isVisible, onClose }) => {
         type: "image/jpeg",
       });
   
-      const response = await fetch(`http://192.168.0.29:3000/api/user/image`, {
+      const response = await fetch(`${getServerUrl()}/api/user/image`, {
         method: "PATCH",
         headers: {
           "Accept": "application/json",
@@ -103,7 +105,7 @@ const GeneralModal = ({ isVisible, onClose }) => {
       if (response.ok) {
         console.log("Фото успешно обновлено!");
       } else {
-        const errorData = await response.text(); // Логируем текст ошибки
+        const errorData = await response.text();
         console.error("Ошибка при обновлении фото:", errorData);
       }
     } catch (error) {
@@ -132,11 +134,11 @@ const GeneralModal = ({ isVisible, onClose }) => {
         </TouchableOpacity>
 
 
-        {/* Контент */}
+     
         <View style={{ padding: 20, marginTop: 90 }}>
           <Text style={{ fontSize: 24, fontWeight: "bold", textAlign: "center", marginBottom: 20 }}>Загальне</Text>
 
-          {/* Фото профиля */}
+     
           <View className="items-center mt-4">
             <View className="relative">
               <Image source={{ uri: image }} className="w-24 h-24 rounded-full" />
@@ -159,7 +161,7 @@ const GeneralModal = ({ isVisible, onClose }) => {
             <Text className="text-gray-500">мопс</Text>
           </View>
 
-          {/* Дата рождения */}
+     
           <View className="mt-6">
             <Text className="text-sm font-bold">Дата народження</Text>
             <DateTimePicker

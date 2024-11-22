@@ -1,17 +1,17 @@
-// Определяем класс Dog
+// Класс Dog
 class Dog {
     constructor(
         dog_id,
-        breed,
-        weight,
-        age,
-        emotional_status,
-        activity_level,
-        latitude,
-        longitude,
+        breed = "unknown",
+        weight = 10,
+        age = 5,
+        emotional_status = 5,
+        activity_level = 5,
+        latitude = 0,
+        longitude = 0,
         after_walk_points = [],
         received_points_by_breed = [],
-        vaccination_status,
+        vaccination_status = {},
         anti_tick = true
     ) {
         this.dog_id = dog_id;
@@ -29,25 +29,32 @@ class Dog {
         this.aggregated_experience = this._calculate_aggregated_experience();
     }
 
-    // Метод для расчета совокупного опыта
+    // Расчет совокупного опыта
     _calculate_aggregated_experience() {
         const weight_emotional = 0.6;
         const weight_after_walk = 0.4;
         const average_points_by_breed = this.received_points_by_breed.length
             ? this.received_points_by_breed.reduce((a, b) => a + b, 0) / this.received_points_by_breed.length
-            : 0;
+            : 5; // Значение по умолчанию
         return weight_emotional * this.emotional_status + weight_after_walk * average_points_by_breed;
     }
 
-    // Метод для расчета схожести прививок
+    // Расчет схожести прививок
     vaccination_similarity(other_dog) {
-        const matching_vaccines = Object.keys(this.vaccination_status).filter(
+        const this_vaccines = Object.keys(this.vaccination_status);
+        const other_vaccines = Object.keys(other_dog.vaccination_status);
+        const total_vaccines = new Set([...this_vaccines, ...other_vaccines]).size;
+
+        if (total_vaccines === 0) return 0.5; // Если прививок нет, возвращаем 50% схожести
+
+        const matching_vaccines = this_vaccines.filter(
             vaccine => this.vaccination_status[vaccine] === other_dog.vaccination_status[vaccine]
         ).length;
-        return matching_vaccines / Object.keys(this.vaccination_status).length;
+
+        return matching_vaccines / total_vaccines;
     }
 
-    // Метод для расчета общей схожести с другой собакой
+    // Расчет общей схожести
     calculate_similarity(other_dog) {
         const weights = {
             breed: 0.15,
@@ -60,52 +67,50 @@ class Dog {
             anti_tick: 0.05
         };
 
-        // Breed similarity (1 if same breed, 0 if different)
-        const breed_similarity = this.breed === other_dog.breed ? 1 : 0;
+        // Схожесть породы
+        const breed_similarity = this.breed.toLowerCase() === other_dog.breed.toLowerCase() ? 1 : 0.5;
 
-        // Euclidean distance for numerical parameters
+        // Разница по числовым параметрам
         const weight_diff = Math.abs(this.weight - other_dog.weight);
         const age_diff = Math.abs(this.age - other_dog.age);
         const emotional_status_diff = Math.abs(this.emotional_status - other_dog.emotional_status);
         const activity_level_diff = Math.abs(this.activity_level - other_dog.activity_level);
         const experience_diff = Math.abs(this.aggregated_experience - other_dog.aggregated_experience);
 
-        // Normalize the differences
-        const max_weight = 50;  // Максимальный вес в кг
-        const max_age = 15;     // Максимальный возраст в годах
+        // Нормализация разницы
+        const max_weight = 50; // Максимальный вес
+        const max_age = 15; // Максимальный возраст
         const max_emotional_status = 10; // Шкала 1-10
         const max_activity_level = 10; // Шкала 1-10
-        const max_experience = 10;  // Шкала 1-10
+        const max_experience = 10; // Шкала 1-10
 
-        const weight_similarity = 1 - (weight_diff / max_weight);
-        const age_similarity = 1 - (age_diff / max_age);
-        const emotional_status_similarity = 1 - (emotional_status_diff / max_emotional_status);
-        const activity_level_similarity = 1 - (activity_level_diff / max_activity_level);
-        const experience_similarity = 1 - (experience_diff / max_experience);
+        const weight_similarity = 1 - weight_diff / max_weight;
+        const age_similarity = 1 - age_diff / max_age;
+        const emotional_status_similarity = 1 - emotional_status_diff / max_emotional_status;
+        const activity_level_similarity = 1 - activity_level_diff / max_activity_level;
+        const experience_similarity = 1 - experience_diff / max_experience;
 
-        // Vaccination similarity
+        // Схожесть прививок
         const vaccination_similarity = this.vaccination_similarity(other_dog);
 
-        // Anti-tick similarity
-        const anti_tick_similarity = this.anti_tick === other_dog.anti_tick ? 1 : 0;
+        // Защита от клещей
+        const anti_tick_similarity = this.anti_tick === other_dog.anti_tick ? 1 : 0.5;
 
-        // Total similarity
-        const total_similarity = (
+        // Итоговая схожесть
+        return (
             weights.breed * breed_similarity +
-            weights.weight * weight_similarity +
-            weights.age * age_similarity +
-            weights.emotional_status * emotional_status_similarity +
-            weights.activity_level * activity_level_similarity +
-            weights.aggregated_experience * experience_similarity +
+            weights.weight * (weight_similarity || 0.5) +
+            weights.age * (age_similarity || 0.5) +
+            weights.emotional_status * (emotional_status_similarity || 0.5) +
+            weights.activity_level * (activity_level_similarity || 0.5) +
+            weights.aggregated_experience * (experience_similarity || 0.5) +
             weights.vaccination_status * vaccination_similarity +
             weights.anti_tick * anti_tick_similarity
         );
-
-        return total_similarity;
     }
 }
 
-// Функция для расчета географической дистанции с использованием Haversine
+// Расчет географической дистанции
 const calculate_geographic_distance = (dog1, dog2) => {
     const toRadians = (degrees) => degrees * (Math.PI / 180);
     const lat1 = toRadians(dog1.latitude);
@@ -113,45 +118,46 @@ const calculate_geographic_distance = (dog1, dog2) => {
     const lat2 = toRadians(dog2.latitude);
     const lon2 = toRadians(dog2.longitude);
 
-    const R = 6371; // Радиус Земли в километрах
+    const R = 6371; // Радиус Земли
     const dLat = lat2 - lat1;
     const dLon = lon2 - lon1;
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(lat1) * Math.cos(lat2) *
-              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+    const a = Math.sin(dLat / 2) ** 2 +
+              Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;  // Возвращаем дистанцию в километрах
+
+    return R * c; // Дистанция в километрах
 };
 
-// Функция для подбора собак по радиусу и расчету схожести
-const match_dogs = (target_dog, dogs, radius_km) => {
+// Подбор собак по радиусу и метчингу
+const match_dogs = (target_dog, dogs, radius_km = 500) => {
     const matches = [];
+  
     for (const dog of dogs) {
-        if (dog.dog_id === target_dog.dog_id) continue;
-
-        // Calculate geographic distance
-        const distance = calculate_geographic_distance(target_dog, dog);
-        if (distance <= radius_km) {
-            // Calculate similarity
-            const similarity = target_dog.calculate_similarity(dog);
-            const similarity_percentage = Math.round(similarity * 100);
-            matches.push({ dog_id: dog.dog_id, similarity_percentage, distance_km: distance });
-        }
+      if (dog.dog_id === target_dog.dog_id) continue;
+  
+      const distance = calculate_geographic_distance(target_dog, dog);
+  
+      const similarity = target_dog.calculate_similarity(dog);
+      const similarity_percentage = Math.round(similarity * 100);
+  
+      // Добавляем всех собак с метчингом выше 20%
+      if (similarity_percentage > 20) {
+        matches.push({
+          ...dog,
+          similarity_percentage,
+          distance_km: distance
+        });
+      }
     }
-    // Сортируем результаты по убыванию схожести
+  
+  
     return matches.sort((a, b) => b.similarity_percentage - a.similarity_percentage);
-};
-
-// Пример форматирования вывода результатов
-const format_matches_output = (target_dog, matched_dogs) => {
-    const formatted_output = `Dog_${target_dog.dog_id} best matches with: `;
-    const match_strings = matched_dogs.map(match => `Dog_${match.dog_id} (${match.similarity_percentage}%, ${match.distance_km.toFixed(2)} km)`);
-    return formatted_output + match_strings.join(', ');
-};
+  };
+  
 
 module.exports = {
     Dog,
     calculate_geographic_distance,
-    match_dogs,
-    format_matches_output
+    match_dogs
 };

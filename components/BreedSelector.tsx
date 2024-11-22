@@ -8,12 +8,12 @@ import {
   StyleSheet,
 } from "react-native";
 
-// Описание типов для props
+
 interface BreedSelectorProps {
-  items: { label: string; value: string }[]; // Список элементов
-  placeholder: string; // Плейсхолдер
-  value: string; // Текущее значение
-  onChangeValue: (value: string) => void; // Callback при изменении
+  items: { label: string; value: string }[]; 
+  placeholder: string;
+  value: string; 
+  onChangeValue: (value: string) => void; 
 }
 
 const BreedSelector: React.FC<BreedSelectorProps> = ({
@@ -22,13 +22,13 @@ const BreedSelector: React.FC<BreedSelectorProps> = ({
   value,
   onChangeValue,
 }) => {
-  const [inputValue, setInputValue] = useState(value || ""); // Поле ввода
-  const [filteredItems, setFilteredItems] = useState(items); // Отфильтрованные данные
-  const [isOpen, setIsOpen] = useState(false); // Открытие списка
+  const [inputValue, setInputValue] = useState(value || ""); 
+  const [filteredItems, setFilteredItems] = useState(items); 
+  const [isOpen, setIsOpen] = useState(false);
 
   useEffect(() => {
     if (inputValue) {
-      // Фильтрация элементов на основе ввода
+   
       const filtered = items.filter((item) =>
         item.label.toLowerCase().includes(inputValue.toLowerCase())
       );
@@ -40,21 +40,21 @@ const BreedSelector: React.FC<BreedSelectorProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* Поле ввода */}
+  
       <TextInput
         value={inputValue}
         placeholder={placeholder}
         placeholderTextColor="gray"
         onChangeText={(text) => {
           setInputValue(text);
-          setIsOpen(true); // Открываем список при вводе
+          setIsOpen(true);
           onChangeValue && onChangeValue(text);
         }}
-        onFocus={() => setIsOpen(true)} // Открываем список при фокусе
+        onFocus={() => setIsOpen(true)} 
         style={styles.input}
       />
 
-      {/* Выпадающий список */}
+  
       {isOpen && (
         <View style={styles.dropDown}>
           <FlatList
@@ -64,9 +64,9 @@ const BreedSelector: React.FC<BreedSelectorProps> = ({
               <TouchableOpacity
                 style={styles.dropDownItem}
                 onPress={() => {
-                  setInputValue(item.label); // Устанавливаем выбранный элемент
-                  setIsOpen(false); // Закрываем список
-                  onChangeValue(item.value); // Передаем значение родителю
+                  setInputValue(item.label); 
+                  setIsOpen(false); 
+                  onChangeValue(item.value); 
                 }}
               >
                 <Text style={styles.dropDownText}>{item.label}</Text>
@@ -103,18 +103,18 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     borderRadius: 8,
     zIndex: 10,
-    maxHeight: 200, // Максимальная высота выпадающего списка
-    shadowColor: "#000", // Цвет тени
+    maxHeight: 200, 
+    shadowColor: "#000", 
     shadowOffset: {
       width: 0,
       height: 4,
     },
     shadowOpacity: 0.25,
     shadowRadius: 4.65,
-    elevation: 8, // Для тени на Android
+    elevation: 8, 
   },
   flatList: {
-    flexGrow: 0, // Позволяет ограничивать высоту FlatList
+    flexGrow: 0, 
   },
   dropDownItem: {
     padding: 10,

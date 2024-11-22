@@ -4,78 +4,90 @@ import { images } from '@/constants/index';
 import { icons } from '@/constants/svg';
 
 const DogProfileModal = ({ isVisible, onClose, dog }) => {
-  if (!dog) return null;
-
-  const screenHeight = Dimensions.get('window').height;
-
-  return (
-    <Modal
-      visible={isVisible}
-      transparent={true}
-      animationType="slide"
-      onRequestClose={onClose}
-    >
-      <View style={styles.container}>
-        {/* Блок з зображенням */}
-        <Image source={images.OtherDogs} style={styles.backgroundImage} />
-
-         <TouchableOpacity style={styles.backButton} onPress={onClose}>
-          <icons.ArrowLeft width={24} height={24} style={styles.backIcon} />
-        </TouchableOpacity>
-
-        {/* Біла плашка з інформацією */}
-        <View style={styles.infoContainer}>
-          <View style={styles.nameRow}>
-            <Text style={styles.dogName}>{dog.name || 'Ім\'я'}</Text>
-            <Text style={styles.matchPercentage}>{dog.matchPercentage || 0}% метч</Text>
-          </View>
-
-          <View style={styles.statusRow}>
-  <Text style={styles.statusLabel}>Статус</Text>
-  <View style={styles.statusContainer}>
-    <icons.HomeIcons width={24} height={24} style={styles.statusIcon} />
-    <Text style={styles.statusText}>{dog.status || 'вдома'}</Text>
-  </View>
-</View>
-
-
-          {/* Блок з інформацією в один ряд */}
-          <View style={styles.rowInfo}>
-            <View style={styles.rowItem}>
-              <Text style={styles.icon}>♂️</Text>
-              <Text style={styles.rowText}>Хлопчик</Text>
-            </View>
-            <View style={[styles.rowItem, styles.centerItem]}>
-              <Text style={styles.rowText}>{dog.breed || 'Лабрадор'}</Text>
-            </View>
-            <View style={styles.rowItem}>
-              <Text style={styles.rowText}>{dog.age + ' місяців' || '5 років 3 місяці'}</Text>
-            </View>
-          </View>
-
-          {/* Розділююча лінія */}
-          <View style={styles.separator} />
-
-          {/* Блок "Зазвичай гуляє" */}
-          <View style={styles.walkingRow}>
-            <Text style={styles.walkingTitle}>Зазвичай гуляє:</Text>
-            <Text style={styles.walkingAddress}>
-              {dog.walkingPlace || 'біля вул. Ружинська'}
-            </Text>
-          </View>
-
-          {/* Кнопка "Подружитись" з іконкою лапки */}
-          <TouchableOpacity
-            style={[styles.orangeButton, { marginTop: 10 }]}
-            onPress={() => console.log('Подружитись pressed')}
-          >
-            <Text style={styles.orangeButtonText}>Подружитись</Text>
+    if (!dog) return null;
+  
+    const screenHeight = Dimensions.get('window').height;
+  
+    return (
+      <Modal
+        visible={isVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={onClose}
+      >
+        <View style={styles.container}>
+ 
+          <Image 
+            source={dog.image ? { uri: dog.image } : images.OtherDogs} 
+            style={styles.backgroundImage} 
+          />
+  
+          <TouchableOpacity style={styles.backButton} onPress={onClose}>
+            <icons.ArrowLeft width={24} height={24} style={styles.backIcon} />
           </TouchableOpacity>
+  
+   
+          <View style={styles.infoContainer}>
+            <View style={styles.nameRow}>
+              <Text style={styles.dogName}>{dog.name || 'Ім\'я'}</Text>
+              <Text style={styles.matchPercentage}>
+                {dog.similarity_percentage !== undefined 
+                    ? `${dog.similarity_percentage}% метч` 
+                    : 'Нет данных'}
+                </Text>
+            </View>
+  
+            <View style={styles.statusRow}>
+              <Text style={styles.statusLabel}>Статус</Text>
+              <View style={styles.statusContainer}>
+                <icons.HomeIcons width={24} height={24} style={styles.statusIcon} />
+                <Text style={styles.statusText}>{dog.status || 'вдома'}</Text>
+              </View>
+            </View>
+  
+            <View style={styles.rowInfo}>
+              <View style={styles.rowItem}>
+                <Text style={styles.icon}>
+                  {dog.gender === "male" ? "♂️" : "♀️"}
+                </Text>
+                <Text style={styles.rowText}>
+                  {dog.gender === "male" ? "Хлопчик" : "Дівчинка"}
+                </Text>
+              </View>
+              <View style={[styles.rowItem, styles.centerItem]}>
+                <Text style={styles.rowText}>{dog.breed || 'Лабрадор'}</Text>
+              </View>
+              <View style={styles.rowItem}>
+                <Text style={styles.rowText}>
+                  {dog.age ? `${dog.age} місяців` : '5 років 3 місяці'}
+                </Text>
+              </View>
+            </View>
+  
+     
+            <View style={styles.separator} />
+  
+      
+            <View style={styles.walkingRow}>
+              <Text style={styles.walkingTitle}>Зазвичай гуляє:</Text>
+              <Text style={styles.walkingAddress}>
+                {dog.walkingPlace || 'біля вул. Ружинська'}
+              </Text>
+            </View>
+  
+     
+            <TouchableOpacity
+              style={[styles.orangeButton, { marginTop: 10 }]}
+              onPress={() => console.log('Подружитись pressed')}
+            >
+              <Text style={styles.orangeButtonText}>Подружитись</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
-    </Modal>
-  );
-};
+      </Modal>
+    );
+  };
+  
 
 const styles = StyleSheet.create({
   container: {
@@ -89,9 +101,9 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: 'absolute',
-    top: 40, // Відступ від верхнього краю (налаштуйте під ваш макет)
-    left: 20, // Відступ зліва
-    zIndex: 10, // Високий індекс для перекриття
+    top: 40, 
+    left: 20, 
+    zIndex: 10, 
     padding: 10,
     borderRadius: 30,
   },

@@ -6,6 +6,12 @@ import { useUser } from '@clerk/clerk-expo';
 import { icons } from "@/constants/svg";
 import { images } from "@/constants/index";
 import { useNavigation } from '@react-navigation/native';
+import DogProfileModal from "@/app/(root)/(modal)/DogProfile";
+import { Dog, match_dogs, calculate_geographic_distance } from "@/dogMatching";
+import { getServerUrl } from "@/utils/getServerUrl";
+
+
+
 
 const windowWidth = Dimensions.get('window').width;
 
@@ -54,6 +60,70 @@ const ReminderCard = ({ item }) => {
   );
 };
 
+const DogCard = ({ dog, onPress }) => (
+    <TouchableOpacity
+      key={dog.dog_id}
+      onPress={onPress}
+      className="bg-[#FFF7F2] rounded-lg p-4"
+      style={{
+        width: 240,
+        height: 130,
+        flexDirection: "row",
+        alignItems: "center",
+        marginRight: 10,
+      }}
+    >
+   
+      <Image
+  source={images.OtherDogs} 
+  defaultSource={images.OtherDogs}  
+  style={{
+    width: 80,
+    height: "100%",
+    borderRadius: 12,
+    marginRight: 10,
+  }}
+/>
+
+  
+    
+      <View style={{ flex: 1, justifyContent: "space-between" }}>
+        <View>
+          <Text className="font-bold text-black text-sm">
+            {dog.name || "Без имени"} {dog.gender === "male" ? "♂️" : "♀️"}
+          </Text>
+          <Text className="text-gray-500 text-xs">{dog.breed || "Не указано"}</Text>
+        </View>
+        <View>
+          <Text className="text-gray-400 text-xs">
+            Настрій: {dog.emotional_status || "спокійний"}
+          </Text>
+          <Text className="text-gray-400 text-xs">
+            Активність: {dog.activity_level || "середня"}
+          </Text>
+        </View>
+        <Text className="text-orange-500 font-bold text-xs">
+          {dog.similarity_percentage || 0}% метч
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+  
+  
+  
+
+  const DogList = ({ dogs, onDogSelect }) => (
+    <ScrollView horizontal className="mt-3">
+      {dogs.map((dog) => (
+        <DogCard key={dog.dog_id || dog.name} dog={dog} onPress={() => onDogSelect(dog)} />
+      ))}
+    </ScrollView>
+  );
+  
+  
+
+  
+
 const SliderComponent = () => {
   return (
     <View>
@@ -80,13 +150,16 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [isToggled, setIsToggled] = useState(false);
   const [image, setImage] = useState(null);
+  const [dogs, setDogs] = useState([]);
+  const [selectedDog, setSelectedDog] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
       if (!user || !user.id) return; 
 
       try {
-        const response = await fetch(`http://192.168.0.29:3000/api/user?clerkId=${user.id}`);
+        const response = await fetch(`${getServerUrl()}/api/user?clerkId=${user.id}`);
         const data = await response.json();
         if (response.ok) {
           setUserName(data.name); 
@@ -116,6 +189,121 @@ const Home = () => {
 
   const toggleSwitch = () => setIsToggled(!isToggled);
 
+  useEffect(() => {
+    const fetchDogsNearby = async () => {
+      try {
+        const response = await fetch(
+          `${getServerUrl()}/api/users/locations?clerkId=${user.id}`
+        );
+        const data = await response.json();
+  
+        if (response.ok) {
+          setDogs(data);
+        } else {
+          console.error("Ошибка при загрузке собак:", data.error);
+        }
+      } catch (error) {
+        console.error("Ошибка запроса данных собак:", error);
+      }
+    };
+  
+    fetchDogsNearby();
+  }, [user]);
+  
+  
+
+  useEffect(() => {
+    const fetchDogsAndMatch = async () => {
+      try {
+        const userResponse = await fetch(`${getServerUrl()}/api/user?clerkId=${user.id}`);
+        const userData = await userResponse.json();
+  
+        const dogsResponse = await fetch(`${getServerUrl()}/api/users/locations?clerkId=${user.id}`);
+        const dogsData = await dogsResponse.json();
+  
+        if (userResponse.ok && dogsResponse.ok) {
+          const myDog = new Dog(
+            userData.id,
+            userData.breed || "unknown",
+            userData.weight || 10,
+            userData.age || 5,
+            userData.emotional_status || 5,
+            userData.activity_level || 5,
+            userData.latitude || 0,
+            userData.longitude || 0,
+            userData.after_walk_points || [],
+            userData.received_points_by_breed || [],
+            userData.vaccination_status || {},
+            userData.anti_tick !== undefined ? userData.anti_tick : true
+          );
+
+      
+const updatedDogsData = dogsData.map((dog, index) => ({
+    ...dog,
+    dog_id: dog.dog_id ?? index, 
+  }));
+  
+  console.log("Обновленные данные dogsData:", updatedDogsData);
+  
+  
+          const allDogs = dogsData.map((dog, index) =>
+            new Dog(
+              dog.dog_id || index,
+              dog.breed || "unknown",
+              parseFloat(dog.weight || 10),
+              parseInt(dog.age || 5),
+              parseInt(dog.emotional_status || 5),
+              parseInt(dog.activity_level || 5),
+              parseFloat(dog.latitude || 0),
+              parseFloat(dog.longitude || 0),
+              dog.after_walk_points || [],
+              dog.received_points_by_breed || [],
+              dog.vaccination_status || {},
+              dog.anti_tick !== undefined ? dog.anti_tick : true
+            )
+          );
+  
+          console.log("Данные пользователя:", myDog);
+          console.log("Собаки для расчета:", allDogs);
+  
+          const matchedDogs = match_dogs(myDog, allDogs, 500);
+
+          const enrichedDogs = matchedDogs.map((match) => {
+            const baseDogData = updatedDogsData.find(
+              (dog) => String(dog.dog_id) === String(match.dog_id)
+            );
+          
+            return {
+              ...baseDogData || {}, 
+              similarity_percentage: match.similarity_percentage,
+              breed: baseDogData?.breed || "Не указана",
+              name: baseDogData?.name || "Неизвестно",
+              gender: baseDogData?.gender || "unknown",
+            };
+          });
+          
+          console.log("Собаки после расчета метчинга:", enrichedDogs);
+          setDogs(enrichedDogs);
+          
+          console.log("Идентификаторы в dogsData:", dogsData.map((dog) => dog.dog_id));
+console.log("Идентификаторы в matchedDogs:", matchedDogs.map((dog) => dog.dog_id));
+
+          
+        } else {
+          console.error("Ошибка получения данных:", userResponse, dogsResponse);
+        }
+      } catch (error) {
+        console.error("Ошибка получения и обработки данных:", error);
+      }
+    };
+  
+    fetchDogsAndMatch();
+  }, [user]);
+  
+
+  console.log("Собаки после расчета метчинга:", dogs);
+
+  
 
   const formatBirthDate = (dateString) => {
     const options = { year: 'numeric', month: 'long', day: 'numeric' };
@@ -129,6 +317,8 @@ const Home = () => {
       </View>
     ); 
   }
+
+  
 
   return (
     <SafeAreaView className="flex-1 bg-white">
@@ -157,7 +347,7 @@ const Home = () => {
           </View>
         </View>
 
-        {/* Pet Profile */}
+     
         <View className="bg-[#FFF7F2] rounded-2xl p-5 mt-6">
           <View className="flex-row items-center ml-[2px]">
             <Image
@@ -197,21 +387,38 @@ const Home = () => {
           </View>
         </View>
 
-        {/* Buttons */}
+       
         <View className="mt-5">
-          <TouchableOpacity className="bg-[#FF6C22] py-3 p-4 rounded-full flex-row justify-center items-center">
-            <Text className="text-center text-white font-bold mr-2">
-              {isToggled ? 'Знайти нових друзів' : 'Почати прогулянку'}
-            </Text>
-            <icons.WhitePawIcon width={24} height={24} />
-          </TouchableOpacity>
+  <TouchableOpacity
+    className="bg-[#FF6C22] py-3 p-4 rounded-full flex-row justify-center items-center"
+    onPress={() => {
+      if (isToggled) {
 
-          <TouchableOpacity className="bg-[#FFE5D8] py-3 p-4 rounded-full mt-3">
-            <Text className="text-center font-bold">
-              {isToggled ? 'Покликати нових друзів' : 'Створити прогулянку'}
-            </Text>
-          </TouchableOpacity>
-        </View>
+        navigation.navigate('map');
+      } else {
+ 
+        setIsToggled(true);
+      }
+    }}
+  >
+    <Text className="text-center text-white font-bold mr-2">
+      {isToggled ? "Знайти нових друзів" : "Почати прогулянку"}
+    </Text>
+    <icons.WhitePawIcon width={24} height={24} />
+  </TouchableOpacity>
+
+  <TouchableOpacity
+    className="bg-[#FFE5D8] py-3 p-4 rounded-full mt-3"
+    onPress={() => {
+      console.log("Створити прогулянку натиснута");
+    }}
+  >
+    <Text className="text-center font-bold">
+      {isToggled ? "Покликати нових друзів" : "Створити прогулянку"}
+    </Text>
+  </TouchableOpacity>
+</View>;
+
 
 
         {/*<View className="flex-row justify-between mt-5">
@@ -236,36 +443,28 @@ const Home = () => {
           </View>
         </View>
 
-        {/* Friends */}
-        <View className="mt-5">
-          <Text className="font-bold">Хто поруч на прогулянці?</Text>
-          <ScrollView horizontal className="mt-3">
+     
+<View className="mt-5">
+    <Text className="font-bold text-[18px] mr-2">Хто поруч на прогулянці?</Text>
+    <DogList
+  dogs={dogs}
+  onDogSelect={(dog) => {
+    setSelectedDog(dog);
+    setModalVisible(true);
+  }}
+/>
 
-            <View className="bg-gray-100 rounded-lg p-3 mr-3">
-              <Image
-                source={{ uri: 'https://example/friend1' }} 
-                className="w-16 h-16 rounded-full"
-              />
-              <Text>Піксі</Text>
-            </View>
+</View>
 
-            <View className="bg-gray-100 rounded-lg p-3 mr-3">
-              <Image
-                source={{ uri: 'https://example/friend2' }} 
-                className="w-16 h-16 rounded-full"
-              />
-              <Text>Кай</Text>
-            </View>
+{selectedDog && (
+  <DogProfileModal
+    isVisible={modalVisible}
+    onClose={() => setModalVisible(false)}
+    dog={selectedDog}
+  />
+)}
 
-            <View className="bg-gray-100 rounded-lg p-3">
-              <Image
-                source={{ uri: 'https://example/friend3' }} 
-                className="w-16 h-16 rounded-full"
-              />
-              <Text>Каспер</Text>
-            </View>
-          </ScrollView>
-        </View>
+
       </ScrollView>
     </SafeAreaView>
   );

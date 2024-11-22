@@ -3,18 +3,18 @@ import DropDownPicker, { DropDownPickerProps } from "react-native-dropdown-picke
 
 type CustomDropDownPickerProps<T extends string | number | boolean> = DropDownPickerProps<T> & {
   placeholder?: string;
-  searchable?: boolean; // Включение режима поиска
+  searchable?: boolean; 
 };
 
 const CustomDropDownPicker = <T extends string | number | boolean>({
   placeholder = "Выберите значение",
-  searchable = false, // По умолчанию режим поиска выключен
+  searchable = false, 
   ...props
 }: CustomDropDownPickerProps<T>) => {
-  const [inputValue, setInputValue] = useState(""); // Введенное значение (для поиска)
-  const [filteredItems, setFilteredItems] = useState(props.items || []); // Отфильтрованные элементы
+  const [inputValue, setInputValue] = useState(""); 
+  const [filteredItems, setFilteredItems] = useState(props.items || []); 
 
-  // Обновление отфильтрованных элементов при изменении ввода
+
   useEffect(() => {
     if (searchable) {
       const lowerCaseInput = inputValue.toLowerCase();
@@ -74,7 +74,7 @@ const CustomDropDownPicker = <T extends string | number | boolean>({
       }}
       showTickIcon={false}
       {...props}
-      items={searchable ? filteredItems : props.items} // Используем фильтрованные элементы, если включен режим поиска
+      items={searchable ? filteredItems : props.items} 
       searchTextInputProps={
         searchable
           ? {
@@ -87,7 +87,7 @@ const CustomDropDownPicker = <T extends string | number | boolean>({
               value: inputValue,
               placeholder: placeholder,
               placeholderTextColor: "gray",
-              onChangeText: setInputValue, // Обновляем введенное значение
+              onChangeText: setInputValue, 
             }
           : undefined
       }

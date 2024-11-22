@@ -3,6 +3,8 @@ import { View, Text, TouchableOpacity, Switch, FlatList, ActivityIndicator, Aler
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AddVaccinationModal from '@/app/(root)/(modal)/AddVaccinationModal';
 import SterilizationToggle from '@/components/SterilizationToggle';
+import { getServerUrl } from "@/utils/getServerUrl";
+
 
 
 const Doctor = () => {
@@ -22,7 +24,7 @@ const Doctor = () => {
   const fetchMedicalRecords = async (type, setLoading, setData) => {
     setLoading(true);
     try {
-      const response = await fetch(`http://192.168.0.29:3000/api/medical/records?type=${type}`);
+      const response = await fetch(`${getServerUrl()}/api/medical/records?type=${type}`);
       if (!response.ok) {
         throw new Error(`Failed to fetch ${type} records`);
       }
@@ -43,7 +45,7 @@ const Doctor = () => {
 
   const addMedicalRecord = async (newRecord) => {
     try {
-      const response = await fetch('http://192.168.0.29:3000/api/medical/record', {
+      const response = await fetch('${getServerUrl()}/api/medical/record', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newRecord),
@@ -84,26 +86,62 @@ const Doctor = () => {
     }
 
     return (
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 }}>
-        <Text style={{ width: '40%' }} numberOfLines={1}>
-          {item.name}
-        </Text>
-        <Text style={{ width: 60, color: 'gray', textAlign: 'center' }} numberOfLines={1}>
-          {new Date(item.lastDate).toLocaleDateString()}
-        </Text>
-        <Text
+        <View
           style={{
-            width: 60,
-            textAlign: 'center',
-            color: new Date(item.nextDate) < new Date(new Date().setMonth(new Date().getMonth() + 1)) ? 'red' : 'black',
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            paddingVertical: 8,
+            borderBottomWidth: 1,
+            borderBottomColor: '#E5E5E5',
           }}
-          numberOfLines={1}
         >
-          {new Date(item.nextDate).toLocaleDateString()}
-        </Text>
-      </View>
-    );
-  };
+   
+          <Text
+            style={{
+              flex: 1,
+              marginRight: 10,
+              fontWeight: '500',
+              textAlign: 'left',
+              flexShrink: 1, 
+            }}
+            numberOfLines={1}
+          >
+            {item.name}
+          </Text>
+    
+      
+          <Text
+            style={{
+              width: 100, 
+              textAlign: 'center',
+              fontWeight: '400',
+              color: 'gray',
+              flexShrink: 1, 
+            }}
+          >
+            {new Date(item.lastDate).toLocaleDateString()}
+          </Text>
+    
+
+          <Text
+            style={{
+              width: 100, 
+              textAlign: 'center',
+              fontWeight: '500',
+              color:
+                new Date(item.nextDate) <
+                new Date(new Date().setMonth(new Date().getMonth() + 1))
+                  ? 'red'
+                  : 'black',
+              flexShrink: 1, 
+            }}
+          >
+            {new Date(item.nextDate).toLocaleDateString()}
+          </Text>
+        </View>
+      );
+    };
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: 'white', paddingHorizontal: 20 }}>

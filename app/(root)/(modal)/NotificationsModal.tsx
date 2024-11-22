@@ -12,7 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import { icons } from "@/constants/svg";
 
-// Кастомный чекбокс
+
 const CustomCheckBox = ({ label, value, onValueChange }) => (
   <TouchableOpacity
     style={styles.checkBoxContainer}
@@ -38,7 +38,7 @@ const NotificationsModal = ({ isVisible, onClose }) => {
   return (
     <Modal visible={isVisible} transparent={true} animationType="slide">
       <SafeAreaView style={styles.container}>
-        {/* Header */}
+    
         <TouchableOpacity style={styles.closeButton} onPress={onClose}>
           <icons.ArrowLeft width={24} height={24} style={{ color: "#000" }} />
         </TouchableOpacity>
@@ -47,7 +47,7 @@ const NotificationsModal = ({ isVisible, onClose }) => {
           <View style={styles.content}>
             <Text style={styles.title}>Повідомлення</Text>
 
-            {/* Переключатели */}
+        
             <View style={styles.setting}>
               <Text style={styles.settingLabel}>
                 Запит дружби{"\n"}
@@ -78,7 +78,7 @@ const NotificationsModal = ({ isVisible, onClose }) => {
               />
             </View>
 
-            {/* Чекбоксы */}
+        
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>
                 Сповіщення про небезпеку поблизу
@@ -149,12 +149,12 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     color: "#000",
-    marginTop: 10, // Отступ сверху для текста
+    marginTop: 10, 
   },
   settingDescription: {
     fontSize: 14,
     color: "#767577",
-    marginTop: 5, // Отступ сверху для описания
+    marginTop: 5, 
   },
   section: {
     marginTop: 20,

@@ -7,6 +7,8 @@ import GeneralModal from "@/app/(root)/(modal)/GeneralModal";
 import PermissionsModal from "@/app/(root)/(modal)/PermissionsModal";
 import NotificationsModal from "@/app/(root)/(modal)/NotificationsModal";
 import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
+import { getServerUrl } from "@/utils/getServerUrl";
+
 
 
 const Emotions = () => {
@@ -23,7 +25,7 @@ const Emotions = () => {
             if (!user || !user.id) return;
 
             try {
-                const response = await fetch(`http://192.168.0.29:3000/api/user?clerkId=${user.id}`);
+                const response = await fetch(`${getServerUrl()}/api/user?clerkId=${user.id}`);
                 const data = await response.json();
                 if (response.ok) {
                     setUserName(data.name || "Ім'я не вказано");

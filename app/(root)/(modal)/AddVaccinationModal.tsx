@@ -5,7 +5,7 @@ import { Picker } from '@react-native-picker/picker';
 const screenHeight = Dimensions.get('window').height;
 
 const AddVaccinationModal = ({ isVisible, onClose, onAddRecord }) => {
-  const [type, setType] = useState('vaccination'); // Тип записи
+  const [type, setType] = useState('vaccination'); 
   const [name, setName] = useState('');
   const [lastDate, setLastDate] = useState('');
   const [nextDate, setNextDate] = useState('');
@@ -19,7 +19,7 @@ const AddVaccinationModal = ({ isVisible, onClose, onAddRecord }) => {
     const recordData = { type, name, lastDate, nextDate };
     try {
       console.log('Данные для добавления:', recordData);
-      await onAddRecord(recordData); // Вызываем функцию для добавления записи
+      await onAddRecord(recordData); 
       onClose();
       setName('');
       setLastDate('');

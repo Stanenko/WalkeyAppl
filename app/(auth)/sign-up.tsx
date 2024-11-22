@@ -11,6 +11,8 @@ import CustomDropDownPicker from "@/components/CustomDropDownPicker";
 import { fetchDogBreeds } from "@/lib/fetchBreeds";
 import BreedSelector from "@/components/BreedSelector";
 import Slider from '@react-native-community/slider';
+import { getServerUrl } from "@/utils/getServerUrl";
+
 
 
 
@@ -176,13 +178,8 @@ const SignUp = () => {
             image: form.image || null,
             activityLevel: form.activityLevel,
           }));
-
-          const API_BASE_URL =
-            process.env.NODE_ENV === "development"
-                ? "http://192.168.0.29:3000" // Локальный сервер
-                : "http://51.20.81.147:3000"; // Сервер AWS
-
-            await fetch(`${API_BASE_URL}/api/user`, {
+          
+            await fetch(`${getServerUrl()}/api/user`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

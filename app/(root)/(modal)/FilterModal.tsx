@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TouchableOpacity, TextInput, FlatList, Dimensions } from "react-native";
-import { fetchDogBreeds } from "@/lib/fetchBreeds"; // Для получения списка пород собак
+import { fetchDogBreeds } from "@/lib/fetchBreeds"; 
 
 const screenHeight = Dimensions.get('window').height;
 
@@ -18,7 +18,7 @@ const FilterModal = ({ visible, toggleFilterModal, applyFilters, filters, handle
   const [isBreedFilterOpen, setIsBreedFilterOpen] = useState(false);
   const [isAgeFilterOpen, setIsAgeFilterOpen] = useState(false);
 
-  // Загрузка списка пород
+
   useEffect(() => {
     const loadBreeds = async () => {
       const breedList = await fetchDogBreeds();
@@ -87,7 +87,7 @@ const FilterModal = ({ visible, toggleFilterModal, applyFilters, filters, handle
           </View>
         )}
 
-        {/* Поля для ввода минимального и максимального возраста */}
+     
         <TouchableOpacity
           onPress={() => setIsAgeFilterOpen(!isAgeFilterOpen)}
           className="bg-[#FFF7F2] rounded-xl h-[56px] justify-center items-center mt-4"
@@ -124,7 +124,7 @@ const FilterModal = ({ visible, toggleFilterModal, applyFilters, filters, handle
           </View>
         )}
 
-        {/* Поля для выбора уровня активности */}
+  
         <Text className="text-base mb-2">Рівень активності:</Text>
         <TextInput
           value={activityLevel}
@@ -134,7 +134,7 @@ const FilterModal = ({ visible, toggleFilterModal, applyFilters, filters, handle
           className="border border-gray-400 rounded-lg p-2"
         />
 
-        {/* Поля для выбора эмоционального состояния */}
+   
         <Text className="text-base mb-2">Емоційний стан:</Text>
         <TextInput
           value={emotionalStatus}
@@ -144,7 +144,7 @@ const FilterModal = ({ visible, toggleFilterModal, applyFilters, filters, handle
           className="border border-gray-400 rounded-lg p-2"
         />
 
-        {/* Поля для выбора статуса вакцинации */}
+      
         <Text className="text-base mb-2">Статус вакцинації:</Text>
         <TextInput
           value={vaccinationStatus}
@@ -153,7 +153,7 @@ const FilterModal = ({ visible, toggleFilterModal, applyFilters, filters, handle
           className="border border-gray-400 rounded-lg p-2"
         />
 
-        {/* Кнопка "Застосувати фільтри" */}
+  
         <TouchableOpacity
           onPress={() => {
             applyFilters();
@@ -164,7 +164,7 @@ const FilterModal = ({ visible, toggleFilterModal, applyFilters, filters, handle
           <Text className="text-white text-center">Застосувати фільтри</Text>
         </TouchableOpacity>
 
-        {/* Кнопка "Закрити" */}
+      
         <TouchableOpacity
           onPress={toggleFilterModal}
           className="bg-[#FFF7F2] rounded-full h-[56px] justify-center items-center mt-4"

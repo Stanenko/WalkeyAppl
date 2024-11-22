@@ -11,10 +11,12 @@ import { useLocationStore } from "@/store/index";
 import { useUser } from "@clerk/clerk-expo";
 import FilterModal from "@/app/(root)/(modal)/FilterModal";
 import DogProfileModal from "@/app/(root)/(modal)/DogProfile";
+import { getServerUrl } from "@/utils/getServerUrl";
+
 
 const updateLocation = async (latitude, longitude, clerkId) => {
   try {
-    await fetch("http://192.168.0.29:3000/api/user/location", {
+    await fetch("${getServerUrl()}/api/user/location", {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
@@ -44,19 +46,40 @@ const fetchWithTimeout = async (url, options = {}, timeout = 5000) => {
 };
 
 const fetchOtherUsersLocations = async (clerkId, filters = {}) => {
-  try {
-    const queryParams = new URLSearchParams(filters).toString();
-    const response = await fetchWithTimeout(
-      `http://192.168.0.29:3000/api/users/locations?clerkId=${clerkId}&${queryParams}`,
-      {},
-      5000
-    );
-    return await response.json();
-  } catch (error) {
-    console.error("Error fetching other users locations:", error);
-    return [];
-  }
-};
+    try {
+      const queryParams = new URLSearchParams(filters).toString();
+      const response = await fetchWithTimeout(
+        `${getServerUrl()}/api/users/locations?clerkId=${clerkId}&${queryParams}`,
+        {},
+        5000
+      );
+      const users = await response.json();
+  
+   
+      if (users.length > 0) {
+        const myDog = users.find(user => user.clerk_id === clerkId);
+        const otherDogs = users.filter(user => user.clerk_id !== clerkId);
+  
+        if (myDog) {
+        
+          const matchedDogs = match_dogs(myDog, otherDogs, 500); 
+          return matchedDogs.map((match) => {
+            const baseDogData = otherDogs.find((dog) => dog.dog_id === match.dog_id) || {};
+            return {
+              ...baseDogData,
+              similarity_percentage: match.similarity_percentage,
+            };
+          });
+        }
+      }
+  
+      return users;
+    } catch (error) {
+      console.error("Error fetching other users locations:", error);
+      return [];
+    }
+  };
+  
 
 const Map = () => {
   const { userLatitude, userLongitude, setUserLocation } = useLocationStore();
@@ -85,6 +108,7 @@ const Map = () => {
   };
 
   const openDogProfile = (dog) => {
+    console.log("Opening Dog Profile:", dog); 
     setSelectedDog(dog);
     setIsModalVisible(true);
   };
@@ -114,7 +138,7 @@ const Map = () => {
 
     if (user && user.id) {
       try {
-        const response = await fetch(`http://192.168.0.29:3000/api/users/locations?clerkId=${user.id}`);
+        const response = await fetch(`${getServerUrl()}/api/users/locations?clerkId=${user.id}`);
         const data = await response.json();
         setOtherUsersLocations(data);
       } catch (error) {
@@ -127,7 +151,7 @@ const Map = () => {
   const fetchAllUsers = async () => {
     if (user && user.id) {
       try {
-        const response = await fetch(`http://192.168.0.29:3000/api/users/locations?clerkId=${user.id}`);
+        const response = await fetch(`${getServerUrl()}/api/users/locations?clerkId=${user.id}`);
         const data = await response.json();
         setOtherUsersLocations(data);
       } catch (error) {
@@ -143,7 +167,7 @@ const Map = () => {
       if (!user || !user.id) return;
 
       try {
-        const response = await fetch(`http://192.168.0.29:3000/api/user?clerkId=${user.id}`);
+        const response = await fetch(`${getServerUrl()}/api/user?clerkId=${user.id}`);
         const data = await response.json();
         if (response.ok) {
           setUserName(data.name);
