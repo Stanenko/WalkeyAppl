@@ -9,13 +9,15 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.juliastanenko.Walkey"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.juliastanenko.Walkey"
     },
     "web": {
       "bundler": "metro",
@@ -44,8 +46,13 @@
       "REMOTE_SERVER_URL": "http://51.20.81.147:3000",
       "CLERK_PUBLISHABLE_KEY": "pk_test_aW5ub2NlbnQtaG9uZXliZWUtMTQuY2xlcmsuYWNjb3VudHMuZGV2JA",
       "DATABASE_URL": "postgresql://walkey_owner:02VbINQWjiRc@ep-sparkling-water-a2hcwejl.eu-central-1.aws.neon.tech/walkey?sslmode=require",
-      "GOOGLE_API_KEY": "AIzaSyA_gQd5RWCwGAEZ3JM84CGBOWUSiDBBj04"
+      "GOOGLE_API_KEY": "AIzaSyA_gQd5RWCwGAEZ3JM84CGBOWUSiDBBj04",
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "08de23d0-f84a-42bc-baab-63d979184a2e"
+      }
     }
-
   }
 }

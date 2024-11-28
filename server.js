@@ -6,8 +6,16 @@ const multer = require('multer');
 
 const path = require('path');
 
+
 const app = express();
 app.use(express.json());
+
+const cors = require('cors');
+app.use(cors({
+  origin: "*", 
+  methods: ["GET", "POST", "PATCH", "OPTIONS"],
+}));
+
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -310,23 +318,21 @@ try {
 
 // "vaccination" and "protection"
 app.get('/api/medical/records', async (req, res) => {
-  const { type } = req.query;
+  const { type, clerkId } = req.query;
+
+  if (!clerkId) {
+      return res.status(400).json({ error: 'clerkId is required' });
+  }
 
   try {
-    let query;
-    if (type) {
-      query = await sql`
-        SELECT * FROM medical_records WHERE type = ${type};
+      const records = await sql`
+          SELECT * FROM medical_records
+          WHERE clerk_id = ${clerkId} AND (COALESCE(${type}, '') = '' OR type = ${type});
       `;
-    } else {
-      query = await sql`
-        SELECT * FROM medical_records;
-      `;
-    }
-    res.status(200).json(query);
+      res.status(200).json(records);
   } catch (error) {
-    console.error('Error fetching medical records:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
+      console.error('Error fetching medical records:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
@@ -338,12 +344,9 @@ app.get('/api/medical/records', async (req, res) => {
   };
   
   app.post('/api/medical/record', async (req, res) => {
-    const { type, name, lastDate, nextDate } = req.body;
+    const { clerkId, type, name, lastDate, nextDate } = req.body;
 
-    console.log('Получены данные для добавления:', req.body);
-
-    if (!type || !name || !lastDate || !nextDate) {
-        console.error('Отсутствуют обязательные поля:', { type, name, lastDate, nextDate });
+    if (!clerkId || !type || !name || !lastDate || !nextDate) {
         return res.status(400).json({ error: 'Missing required fields' });
     }
 
@@ -352,18 +355,25 @@ app.get('/api/medical/records', async (req, res) => {
         const formattedNextDate = new Date(nextDate).toISOString();
 
         const newMedicalRecord = await sql`
-            INSERT INTO medical_records (type, name, lastDate, nextDate)
-            VALUES (${type}, ${name}, ${formattedLastDate}, ${formattedNextDate})
+            INSERT INTO medical_records (clerk_id, type, name, lastdate, nextdate)
+            VALUES (${clerkId}, ${type}, ${name}, ${formattedLastDate}, ${formattedNextDate})
             RETURNING *;
         `;
-        console.log('Добавлена запись в базу:', newMedicalRecord);
         res.status(201).json(newMedicalRecord[0]);
     } catch (error) {
-        console.error('Ошибка на сервере при добавлении записи:', error);
+        console.error('Error adding medical record:', error);
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
 
+app.get("/api/db-check", async (req, res) => {
+  try {
+    const result = await sql`SELECT NOW() AS current_time;`;
+    res.status(200).json({ message: "DB connection successful!", time: result[0].current_time });
+  } catch (error) {
+    res.status(500).json({ message: "DB connection failed", error });
+  }
+});
   
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {

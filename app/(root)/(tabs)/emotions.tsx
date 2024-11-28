@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Text, View, TouchableOpacity } from "react-native";
+import { Text, View, TouchableOpacity, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { icons } from "@/constants/svg";
 import { useUser } from "@clerk/clerk-expo";
@@ -8,7 +8,9 @@ import PermissionsModal from "@/app/(root)/(modal)/PermissionsModal";
 import NotificationsModal from "@/app/(root)/(modal)/NotificationsModal";
 import { check, request, PERMISSIONS, RESULTS } from 'react-native-permissions';
 import { getServerUrl } from "@/utils/getServerUrl";
+import InviteFriendModal from "@/app/(root)/(modal)/InviteFriendModal";
 
+const SERVER_URL = "http://192.168.0.18:3000";
 
 
 const Emotions = () => {
@@ -18,6 +20,9 @@ const Emotions = () => {
     const [isGeneralModalVisible, setIsGeneralModalVisible] = useState(false);
     const [isPermissionsModalVisible, setIsPermissionsModalVisible] = useState(false);
     const [isNotificationsModalVisible, setIsNotificationsModalVisible] = useState(false);
+    const [isInviteModalVisible, setIsInviteModalVisible] = useState(false);
+    const [isAddPetModalVisible, setIsAddPetModalVisible] = useState(false);
+
 
 
     useEffect(() => {
@@ -25,7 +30,7 @@ const Emotions = () => {
             if (!user || !user.id) return;
 
             try {
-                const response = await fetch(`${getServerUrl()}/api/user?clerkId=${user.id}`);
+                const response = await fetch(`${SERVER_URL}/api/user?clerkId=${user.id}`);
                 const data = await response.json();
                 if (response.ok) {
                     setUserName(data.name || "Ім'я не вказано");
@@ -56,7 +61,7 @@ const Emotions = () => {
 
     const otherItems = [
         { label: "Додати свого песика", rightIcon: icons.GPlusIcon },
-        { label: "Запросити друга", rightIcon: icons.GInviteIcon },
+        { label: "Запросити друга", rightIcon: icons.GInviteIcon, onPress: () => setIsInviteModalVisible(true)},
     ];
 
     const renderSection = (items, isGrouped = true) => (
@@ -113,6 +118,47 @@ const Emotions = () => {
         </View>
     );
 
+    const renderSectionCustom = (items) => (
+        <View className="mt-3 space-y-3">
+            {items.map((item, index) => (
+                <TouchableOpacity
+                    key={index}
+                    onPress={item.onPress}
+                    className="flex-row items-center justify-between px-4 py-4"
+                    style={{
+                        backgroundColor: "#FFF7F2",
+                        borderRadius: 16,
+                        width: 380,
+                        alignSelf: "center",
+                        marginBottom: 10,
+                    }}
+                >
+                    <View className="flex-row items-center">
+                        {item.icon && (
+                            <item.icon
+                                width={24}
+                                height={24}
+                                color="#FFCDB4"
+                                style={{ marginRight: 15 }}
+                            />
+                        )}
+                        <Text className="ml-3 text-black font-medium">{item.label}</Text>
+                    </View>
+                    {item.rightIcon && (
+                        <item.rightIcon
+                            width={24}
+                            height={24}
+                            color="#FFCDB4"
+                            style={{ marginLeft: 12 }}
+                        />
+                    )}
+                </TouchableOpacity>
+            ))}
+        </View>
+    );
+    
+    
+
     if (loading) {
         return (
             <View className="flex-1 justify-center items-center bg-white">
@@ -134,7 +180,7 @@ const Emotions = () => {
             </View>
     
 
-    
+            <ScrollView>
             <GeneralModal
                 isVisible={isGeneralModalVisible}
                 onClose={() => setIsGeneralModalVisible(false)}
@@ -150,6 +196,12 @@ const Emotions = () => {
             onClose={() => setIsNotificationsModalVisible(false)}
             />
 
+
+            <InviteFriendModal
+                isVisible={isInviteModalVisible}
+                onClose={() => setIsInviteModalVisible(false)}
+            />
+
     
             <View className="px-10 mt-6">
                 <Text style={{ fontSize: 18}} className="text-black font-bold text-base mb-2">Профіль</Text>
@@ -163,42 +215,9 @@ const Emotions = () => {
     
             <View className="px-10 mt-6">
                 <Text style={{ fontSize: 18}} className="text-black font-bold text-base mb-2">Інше</Text>
-                <View className="mt-3 space-y-3">
-                    {otherItems.map((item, index) => (
-                        <TouchableOpacity
-                            key={index}
-                            className="flex-row items-center justify-between px-4 py-4"
-                            style={{
-                                backgroundColor: "#FFF7F2",
-                                borderRadius: 16,
-                                width: 380,
-                                alignSelf: "center",
-                                marginBottom: 10,
-                            }}
-                        >
-                            <View className="flex-row items-center">
-                                {item.icon && (
-                                    <item.icon
-                                        width={24}
-                                        height={24}
-                                        color="#FFCDB4"
-                                        style={{ marginRight: 15 }}
-                                    />
-                                )}
-                                <Text className="ml-3 text-black font-medium">{item.label}</Text>
-                            </View>
-                            {item.rightIcon && (
-                                <item.rightIcon
-                                    width={24}
-                                    height={24}
-                                    color="#FFCDB4"
-                                    style={{ marginLeft: 12 }}
-                                />
-                            )}
-                        </TouchableOpacity>
-                    ))}
-                </View>
+                {renderSectionCustom(otherItems)}
             </View>
+        </ScrollView>
         </SafeAreaView>
     );
 };

@@ -7,6 +7,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { icons } from "@/constants/svg"; 
 import { getServerUrl } from "@/utils/getServerUrl";
 
+const SERVER_URL = "http://192.168.0.18:3000";
 
 const GeneralModal = ({ isVisible, onClose }) => {
   const { user } = useUser();
@@ -18,7 +19,7 @@ const GeneralModal = ({ isVisible, onClose }) => {
     const fetchUserData = async () => {
       if (!user || !user.id) return;
       try {
-        const response = await fetch(`${getServerUrl()}/api/user?clerkId=${user.id}`);
+        const response = await fetch(`${SERVER_URL}/api/user?clerkId=${user.id}`);
         const data = await response.json();
         if (response.ok) {
           setBirthDate(data.birth_date || "");
@@ -38,7 +39,7 @@ const GeneralModal = ({ isVisible, onClose }) => {
 
   const updateBirthDate = async (newDate) => {
     try {
-      const response = await fetch(`${getServerUrl()}/api/user`, {
+      const response = await fetch(`${SERVER_URL}/api/user`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -94,7 +95,7 @@ const GeneralModal = ({ isVisible, onClose }) => {
         type: "image/jpeg",
       });
   
-      const response = await fetch(`${getServerUrl()}/api/user/image`, {
+      const response = await fetch(`${SERVER_URL}/api/user/image`, {
         method: "PATCH",
         headers: {
           "Accept": "application/json",

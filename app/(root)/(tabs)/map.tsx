@@ -14,24 +14,48 @@ import DogProfileModal from "@/app/(root)/(modal)/DogProfile";
 import { getServerUrl } from "@/utils/getServerUrl";
 
 
-const updateLocation = async (latitude, longitude, clerkId) => {
-  try {
-    await fetch("${getServerUrl()}/api/user/location", {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        clerkId: clerkId,
-        latitude: latitude,
-        longitude: longitude,
-      }),
-    });
-  } catch (error) {
-    console.error("Error updating location:", error);
-  }
-};
+const SERVER_URL = "http://192.168.0.18:3000";
 
+
+const updateLocation = async (latitude, longitude, clerkId) => {
+    const controller = new AbortController(); 
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+
+  
+    try {
+      const response = await fetch(`${SERVER_URL}/api/user/location`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          clerkId: clerkId,
+          latitude: latitude,
+          longitude: longitude,
+        }),
+        signal: controller.signal, 
+      });
+  
+      clearTimeout(timeoutId); 
+  
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Ошибка обновления локации:", errorData);
+        throw new Error(errorData.error || "Ошибка сервера");
+      }
+  
+      console.log("Локация успешно обновлена!");
+    } catch (error) {
+      clearTimeout(timeoutId); 
+      if (error.name === "AbortError") {
+        console.error("Запрос был прерван из-за тайм-аута.");
+      } else {
+        console.error("Ошибка обновления локации:", error);
+      }
+    }
+  };
+  
 const fetchWithTimeout = async (url, options = {}, timeout = 5000) => {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
@@ -49,7 +73,7 @@ const fetchOtherUsersLocations = async (clerkId, filters = {}) => {
     try {
       const queryParams = new URLSearchParams(filters).toString();
       const response = await fetchWithTimeout(
-        `${getServerUrl()}/api/users/locations?clerkId=${clerkId}&${queryParams}`,
+        `${SERVER_URL}/api/users/locations?clerkId=${clerkId}&${queryParams}`,
         {},
         5000
       );
@@ -138,7 +162,7 @@ const Map = () => {
 
     if (user && user.id) {
       try {
-        const response = await fetch(`${getServerUrl()}/api/users/locations?clerkId=${user.id}`);
+        const response = await fetch(`${SERVER_URL}/api/users/locations?clerkId=${user.id}`);
         const data = await response.json();
         setOtherUsersLocations(data);
       } catch (error) {
@@ -151,7 +175,7 @@ const Map = () => {
   const fetchAllUsers = async () => {
     if (user && user.id) {
       try {
-        const response = await fetch(`${getServerUrl()}/api/users/locations?clerkId=${user.id}`);
+        const response = await fetch(`${SERVER_URL}/api/users/locations?clerkId=${user.id}`);
         const data = await response.json();
         setOtherUsersLocations(data);
       } catch (error) {
@@ -167,7 +191,7 @@ const Map = () => {
       if (!user || !user.id) return;
 
       try {
-        const response = await fetch(`${getServerUrl()}/api/user?clerkId=${user.id}`);
+        const response = await fetch(`${SERVER_URL}/api/user?clerkId=${user.id}`);
         const data = await response.json();
         if (response.ok) {
           setUserName(data.name);

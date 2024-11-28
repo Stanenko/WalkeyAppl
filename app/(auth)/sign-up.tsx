@@ -12,9 +12,10 @@ import { fetchDogBreeds } from "@/lib/fetchBreeds";
 import BreedSelector from "@/components/BreedSelector";
 import Slider from '@react-native-community/slider';
 import { getServerUrl } from "@/utils/getServerUrl";
+import { useRef } from "react";
 
 
-
+const SERVER_URL = "http://192.168.0.18:3000";
 
 
 
@@ -62,11 +63,11 @@ const SignUp = () => {
         return `${year}-${month}-${day}`; 
     };
 
-    const [verification, setVerification] = useState({
+    const [verification, setVerification] = useState<{ state: string; error: string; code: string }>({
         state: "default",
         error: "",
         code: "",
-    });
+      });
     const [clerkId, setClerkId] = useState<string | null>(null); 
 
     const [showMonthPicker, setShowMonthPicker] = useState(false);
@@ -179,22 +180,34 @@ const SignUp = () => {
             activityLevel: form.activityLevel,
           }));
           
-            await fetch(`${getServerUrl()}/api/user`, {
+          console.log("Server URL:", getServerUrl());
+
+          const response = await fetch(`${SERVER_URL}/api/user`, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-              },
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              name: form.name,
-              email: form.email,
-              clerkId: clerkId,
-              gender: form.gender,
-              birthDate: formattedBirthDate,
-              breed: form.breed,
-              image: form.image || null,
-              activityLevel: form.activityLevel,
+                name: form.name,
+                email: form.email,
+                clerkId: clerkId,
+                gender: form.gender,
+                birthDate: formattedBirthDate,
+                breed: form.breed,
+                image: null, // Убедитесь, что сервер ожидает это поле как NULL
+                activityLevel: form.activityLevel,
             }),
-          });
+          }) .then(async (response) => {
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.error || "Неизвестная ошибка");
+            }
+        
+            const responseData = await response.json();
+            console.log("Response Data:", responseData);
+        
+          })
+          .catch((error) => {
+            console.error("Ошибка запроса:", error.message);
+          }); 
 {/*           
       
           // Создание пользователя
@@ -287,7 +300,6 @@ const SignUp = () => {
 
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
-    // Функция для съемки фото
     const takePhoto = async () => {
         const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
         if (!permissionResult.granted) {
@@ -307,7 +319,7 @@ const SignUp = () => {
         }
     };
 
-    // Функция для выбора фото из галереи
+
     const pickImage = async () => {
         const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (!permissionResult.granted) {
@@ -337,17 +349,26 @@ const SignUp = () => {
             setBreeds(fetchedBreeds.map((breed) => ({ label: breed, value: breed }))); 
         };
         fetchBreedsData();
-    }, []);
+    }, []); 
+
+    useEffect(() => {
+        if (form.email) {
+            console.log("Email updated:", form.email);
+        }
+    }, [form.email]);
+    
 
     const [activityLevel, setActivityLevel] = useState(50);
+    const emailInputRef = useRef(null);
 
     return (
         <View className="flex-1 bg-white justify-between">
             <KeyboardAvoidingView
                 style={{ flex: 1 }}
                 behavior={Platform.OS === "ios" ? "padding" : undefined}
+                keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 0}
             >
-                <ScrollView contentContainerStyle={{ flexGrow: 1 }} nestedScrollEnabled={true}>
+                <ScrollView contentContainerStyle={{ flexGrow: 1 }} nestedScrollEnabled={true} keyboardShouldPersistTaps="handled">
                
             <TouchableOpacity
                 onPress={() => {
@@ -373,22 +394,35 @@ const SignUp = () => {
                             </Text>
                         </View>
                         <InputField
-                            label="Email"
-                            placeholder="Enter email"
-                            icon={icons.email}
-                            textContentType="emailAddress"
-                            value={form.email}
-                            onChangeText={(value: string) => setForm({ ...form, email: value })}
+                        label="Email"
+                        placeholder="Введіть email"
+                        icon={icons.email}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        textContentType="emailAddress"
+                        autoComplete="email"
+                        value={form.email}
+                        onChangeText={(value: string) => {
+                            if (value !== form.email) {
+                            setForm({ ...form, email: value });
+                            }
+                        }}
                         />
+
                         <InputField
-                            label="Password"
-                            placeholder="Enter password"
-                            icon={icons.lock}
-                            secureTextEntry={true}
-                            textContentType="password"
-                            value={form.password}
-                            onChangeText={(value: string) => setForm({ ...form, password: value })}
+                        label="Password"
+                        placeholder="Введіть пароль"
+                        icon={icons.lock}
+                        secureTextEntry
+                        textContentType="password"
+                        value={form.password}
+                        onChangeText={(value: string) => {
+                            if (value !== form.password) {
+                            setForm({ ...form, password: value });
+                            }
+                        }}
                         />
+
                         <Text className="text-neutral-400 mt-2">
                             Чому у песиків все ще нема особистих...
                         </Text>
@@ -551,7 +585,7 @@ const SignUp = () => {
                          Це фото будуть бачити інші песики. Ви зможете будь-коли його змінити.
                      </Text>
                      <View className="flex-row justify-around mt-10">
-                         {/* Кнопка "Зробити фото" */}
+                     
                          <TouchableOpacity
                              onPress={takePhoto}
                              className="w-[138px] h-[121px] border rounded-xl flex items-center justify-center"
@@ -561,7 +595,7 @@ const SignUp = () => {
                              <Text className="mt-3 text-[#FF6C22]">Зробити фото</Text>
                          </TouchableOpacity>
 
-                         {/* Кнопка "Вибрати фото" */}
+                       
                          <TouchableOpacity
                              onPress={pickImage}
                              className="w-[138px] h-[121px] border rounded-xl flex items-center justify-center"

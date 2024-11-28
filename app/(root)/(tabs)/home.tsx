@@ -10,8 +10,7 @@ import DogProfileModal from "@/app/(root)/(modal)/DogProfile";
 import { Dog, match_dogs, calculate_geographic_distance } from "@/dogMatching";
 import { getServerUrl } from "@/utils/getServerUrl";
 
-
-
+const SERVER_URL = "http://192.168.0.18:3000";
 
 const windowWidth = Dimensions.get('window').width;
 
@@ -61,64 +60,55 @@ const ReminderCard = ({ item }) => {
 };
 
 const DogCard = ({ dog, onPress }) => (
-    <TouchableOpacity
-      key={dog.dog_id}
-      onPress={onPress}
-      className="bg-[#FFF7F2] rounded-lg p-4"
+  <TouchableOpacity
+    key={dog.dog_id}
+    onPress={onPress}
+    className="bg-[#FFF7F2] rounded-lg p-4"
+    style={{
+      width: 240,
+      height: 130,
+      flexDirection: "row",
+      alignItems: "center",
+      marginRight: 10,
+    }}
+  >
+    <Image
+      source={images.OtherDogs}
+      defaultSource={images.OtherDogs}
       style={{
-        width: 240,
-        height: 130,
-        flexDirection: "row",
-        alignItems: "center",
+        width: 80,
+        height: "100%",
+        borderRadius: 12,
         marginRight: 10,
       }}
-    >
-   
-      <Image
-  source={images.OtherDogs} 
-  defaultSource={images.OtherDogs}  
-  style={{
-    width: 80,
-    height: "100%",
-    borderRadius: 12,
-    marginRight: 10,
-  }}
-/>
+    />
 
-  
-    
-      <View style={{ flex: 1, justifyContent: "space-between" }}>
-        <View>
-          <Text className="font-bold text-black text-sm">
-            {dog.name || "Без имени"} {dog.gender === "male" ? "♂️" : "♀️"}
-          </Text>
-          <Text className="text-gray-500 text-xs">{dog.breed || "Не указано"}</Text>
-        </View>
-        <View>
-          <Text className="text-gray-400 text-xs">
-            Настрій: {dog.emotional_status || "спокійний"}
-          </Text>
-          <Text className="text-gray-400 text-xs">
-            Активність: {dog.activity_level || "середня"}
-          </Text>
-        </View>
-        <Text className="text-orange-500 font-bold text-xs">
-          {dog.similarity_percentage || 0}% метч
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
-  
-  
-  
+    <View style={{ flex: 1, justifyContent: "space-between" }}>
+      <Text className="font-bold text-black text-sm">
+        {dog.name || "Без имени"} {dog.gender === "male" ? "♂️" : "♀️"}
+      </Text>
+      <Text className="text-gray-500 text-xs">{dog.breed || "Не указано"}</Text>
+      <Text className="text-orange-500 font-bold text-xs">
+        {dog.similarity_percentage || 0}% метч
+      </Text>
+    </View>
+  </TouchableOpacity>
+);
+
 
   const DogList = ({ dogs, onDogSelect }) => (
     <ScrollView horizontal className="mt-3">
-      {dogs.map((dog) => (
-        <DogCard key={dog.dog_id || dog.name} dog={dog} onPress={() => onDogSelect(dog)} />
+      {dogs.map((dog, index) => (
+        <DogCard
+          key={dog.dog_id || `${dog.name}_${index}`}
+          dog={dog}
+          onPress={() => onDogSelect(dog)}
+        />
       ))}
     </ScrollView>
   );
+  
+  
   
   
 
@@ -154,30 +144,142 @@ const Home = () => {
   const [selectedDog, setSelectedDog] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      if (!user || !user.id) return; 
 
-      try {
-        const response = await fetch(`${getServerUrl()}/api/user?clerkId=${user.id}`);
-        const data = await response.json();
-        if (response.ok) {
-          setUserName(data.name); 
-          setGender(data.gender); 
-          setBirthDate(data.birth_date); 
-          setImage(data.image || 'https://via.placeholder.com/150');
-        } else {
-          console.error(data.error);
-        }
-      } catch (error) {
-        console.error('Error fetching user data:', error);
-      } finally {
-        setLoading(false);
+useEffect(() => {
+  const fetchUserData = async () => {
+    if (!user || !user.id) return;
+
+    console.log("Fetching user data...");
+    try {
+      const response = await fetch(`${SERVER_URL}/api/user?clerkId=${user.id}`);
+      console.log("Response status for user data:", response.status);
+
+      const data = await response.json();
+      console.log("User data response:", data);
+
+      if (response.ok) {
+        setUserName(data.name || "Без имени");
+        setGender(data.gender || "unknown");
+        setBirthDate(data.birth_date || "");
+        setImage(data.image || "https://via.placeholder.com/150");
+      } else {
+        console.error("Error fetching user data:", data.error);
       }
-    };
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchUserData();
+  fetchUserData();
+}, [user]);
+
+useEffect(() => {
+    console.log("Current dogs state:", dogs);
+  }, [dogs]);
+  
+// Получение данных о собаках поблизости
+useEffect(() => {
+  const fetchDogsNearby = async () => {
+    if (!user || !user.id) return;
+
+    console.log("Fetching nearby dogs...");
+    try {
+      const response = await fetch(`${SERVER_URL}/api/users/locations?clerkId=${user.id}`);
+      console.log("Response status for nearby dogs:", response.status);
+
+      const data = await response.json();
+      console.log("Nearby dogs data response:", data);
+
+      if (response.ok) {
+        setDogs(data);
+      } else {
+        console.error("Error fetching nearby dogs:", data.error);
+      }
+    } catch (error) {
+      console.error("Error fetching nearby dogs:", error);
+    }
+  };
+
+  fetchDogsNearby();
+}, [user]);
+
+// Получение данных о собаках и расчёт метчинга
+useEffect(() => {
+    const fetchData = async () => {
+        try {
+            const [userResponse, dogsResponse] = await Promise.all([
+                fetch(`${SERVER_URL}/api/user?clerkId=${user.id}`),
+                fetch(`${SERVER_URL}/api/users/locations?clerkId=${user.id}`),
+            ]);
+    
+            if (!userResponse.ok || !dogsResponse.ok) {
+                console.error("Ошибка запросов к API");
+                return;
+            }
+    
+            const userData = await userResponse.json();
+            const dogsData = await dogsResponse.json();
+    
+            console.log("Координаты пользователя из API:", {
+                latitude: userData.latitude,
+                longitude: userData.longitude,
+            });
+    
+            const myDog = new Dog(
+                userData.id,
+                userData.breed || "unknown",
+                userData.weight || 10,
+                userData.age || 5,
+                userData.emotional_status || 5,
+                userData.activity_level || 5,
+                parseFloat(userData.latitude) || 56.0,
+                parseFloat(userData.longitude) || 12.7,
+                userData.after_walk_points || [],
+                userData.received_points_by_breed || [],
+                userData.vaccination_status || {},
+                userData.anti_tick !== undefined ? userData.anti_tick : true
+            );
+    
+            console.log("Координаты пользователя:", {
+                latitude: myDog.latitude,
+                longitude: myDog.longitude,
+            });
+    
+            const allDogs = dogsData.map((dog, index) => ({
+                ...dog,
+                dog_id: dog.dog_id || `generated_${index}`,
+                similarity_percentage: 0,
+                latitude: parseFloat(dog.latitude),
+                longitude: parseFloat(dog.longitude),
+            }));
+    
+            console.log("Координаты собак до фильтрации:", allDogs.map(dog => ({
+                name: dog.name,
+                latitude: dog.latitude,
+                longitude: dog.longitude,
+            })));
+    
+            const matchedDogs = match_dogs(myDog, allDogs, 500);
+            console.log("Совпадения собак:", matchedDogs);
+    
+            setDogs(matchedDogs);
+        } catch (error) {
+            console.error("Ошибка загрузки данных:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+    
+    fetchData();
   }, [user]);
+  
+  
+  useEffect(() => {
+    console.log("Current dogs state:", dogs);
+  }, [dogs]);
+  
 
   useEffect(() => {
     if (!isToggled && wasToggledOn.current) {
@@ -188,119 +290,7 @@ const Home = () => {
   }, [isToggled]);
 
   const toggleSwitch = () => setIsToggled(!isToggled);
-
-  useEffect(() => {
-    const fetchDogsNearby = async () => {
-      try {
-        const response = await fetch(
-          `${getServerUrl()}/api/users/locations?clerkId=${user.id}`
-        );
-        const data = await response.json();
   
-        if (response.ok) {
-          setDogs(data);
-        } else {
-          console.error("Ошибка при загрузке собак:", data.error);
-        }
-      } catch (error) {
-        console.error("Ошибка запроса данных собак:", error);
-      }
-    };
-  
-    fetchDogsNearby();
-  }, [user]);
-  
-  
-
-  useEffect(() => {
-    const fetchDogsAndMatch = async () => {
-      try {
-        const userResponse = await fetch(`${getServerUrl()}/api/user?clerkId=${user.id}`);
-        const userData = await userResponse.json();
-  
-        const dogsResponse = await fetch(`${getServerUrl()}/api/users/locations?clerkId=${user.id}`);
-        const dogsData = await dogsResponse.json();
-  
-        if (userResponse.ok && dogsResponse.ok) {
-          const myDog = new Dog(
-            userData.id,
-            userData.breed || "unknown",
-            userData.weight || 10,
-            userData.age || 5,
-            userData.emotional_status || 5,
-            userData.activity_level || 5,
-            userData.latitude || 0,
-            userData.longitude || 0,
-            userData.after_walk_points || [],
-            userData.received_points_by_breed || [],
-            userData.vaccination_status || {},
-            userData.anti_tick !== undefined ? userData.anti_tick : true
-          );
-
-      
-const updatedDogsData = dogsData.map((dog, index) => ({
-    ...dog,
-    dog_id: dog.dog_id ?? index, 
-  }));
-  
-  console.log("Обновленные данные dogsData:", updatedDogsData);
-  
-  
-          const allDogs = dogsData.map((dog, index) =>
-            new Dog(
-              dog.dog_id || index,
-              dog.breed || "unknown",
-              parseFloat(dog.weight || 10),
-              parseInt(dog.age || 5),
-              parseInt(dog.emotional_status || 5),
-              parseInt(dog.activity_level || 5),
-              parseFloat(dog.latitude || 0),
-              parseFloat(dog.longitude || 0),
-              dog.after_walk_points || [],
-              dog.received_points_by_breed || [],
-              dog.vaccination_status || {},
-              dog.anti_tick !== undefined ? dog.anti_tick : true
-            )
-          );
-  
-          console.log("Данные пользователя:", myDog);
-          console.log("Собаки для расчета:", allDogs);
-  
-          const matchedDogs = match_dogs(myDog, allDogs, 500);
-
-          const enrichedDogs = matchedDogs.map((match) => {
-            const baseDogData = updatedDogsData.find(
-              (dog) => String(dog.dog_id) === String(match.dog_id)
-            );
-          
-            return {
-              ...baseDogData || {}, 
-              similarity_percentage: match.similarity_percentage,
-              breed: baseDogData?.breed || "Не указана",
-              name: baseDogData?.name || "Неизвестно",
-              gender: baseDogData?.gender || "unknown",
-            };
-          });
-          
-          console.log("Собаки после расчета метчинга:", enrichedDogs);
-          setDogs(enrichedDogs);
-          
-          console.log("Идентификаторы в dogsData:", dogsData.map((dog) => dog.dog_id));
-console.log("Идентификаторы в matchedDogs:", matchedDogs.map((dog) => dog.dog_id));
-
-          
-        } else {
-          console.error("Ошибка получения данных:", userResponse, dogsResponse);
-        }
-      } catch (error) {
-        console.error("Ошибка получения и обработки данных:", error);
-      }
-    };
-  
-    fetchDogsAndMatch();
-  }, [user]);
-  
-
   console.log("Собаки после расчета метчинга:", dogs);
 
   

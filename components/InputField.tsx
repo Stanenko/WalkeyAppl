@@ -30,6 +30,11 @@ const InputField: React.FC<InputFieldProps> = ({
 }) => {
   const [isFocused, setIsFocused] = useState(false);
 
+  const containerBorderStyle = isFocused
+  ? "border-black border-2"
+  : "border-neutral-100";
+
+
   return (
     <KeyboardAvoidingView behavior="padding">
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
@@ -60,6 +65,8 @@ const InputField: React.FC<InputFieldProps> = ({
               value={value}
               onChangeText={onChangeText}
               secureTextEntry={secureTextEntry}
+              textContentType="emailAddress"
+              autoComplete="email" 
               textContentType={textContentType}
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
