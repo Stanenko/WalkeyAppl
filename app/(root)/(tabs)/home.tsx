@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, ActivityIndicator, Image, ScrollView, TouchableOpacity, Switch, Dimensions } from 'react-native';
+import { View, Text, ActivityIndicator, Image, ScrollView, Animated, TouchableOpacity, Switch, Dimensions, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Carousel from 'react-native-reanimated-carousel'; 
 import { useUser } from '@clerk/clerk-expo';
@@ -9,6 +9,9 @@ import { useNavigation } from '@react-navigation/native';
 import DogProfileModal from "@/app/(root)/(modal)/DogProfile";
 import { Dog, match_dogs, calculate_geographic_distance } from "@/dogMatching";
 import { getServerUrl } from "@/utils/getServerUrl";
+import HomeNotificationModal from "@/app/(root)/(modal)/HomeNotificationModal";
+import * as Clipboard from 'expo-clipboard';
+import HeaderBar from "@/components/HeaderBar";
 
 const SERVER_URL = "http://192.168.0.18:3000";
 
@@ -84,9 +87,9 @@ const DogCard = ({ dog, onPress }) => (
     />
 
     <View style={{ flex: 1, justifyContent: "space-between" }}>
-      <Text className="font-bold text-black text-sm">
-        {dog.name || "Без имени"} {dog.gender === "male" ? "♂️" : "♀️"}
-      </Text>
+        <Text className="font-bold text-black text-sm">
+            {dog.name || "Без имени"} {dog.gender === "male" ? "♂️" : "♀️"}
+        </Text>
       <Text className="text-gray-500 text-xs">{dog.breed || "Не указано"}</Text>
       <Text className="text-orange-500 font-bold text-xs">
         {dog.similarity_percentage || 0}% метч
@@ -141,71 +144,183 @@ const Home = () => {
   const [isToggled, setIsToggled] = useState(false);
   const [image, setImage] = useState(null);
   const [dogs, setDogs] = useState([]);
+  const [breed, setBreed] = useState("Не dказано");
+  const [uniqueCode, setUniqueCode] = useState("Не вказано");
   const [selectedDog, setSelectedDog] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [notification, setNotification] = useState({ isVisible: false, message: '' });
+  const [fadeAnim] = useState(new Animated.Value(0));
+
+const showNotification = (text) => {
+  setNotification({ isVisible: true, message: text });
+  Animated.timing(fadeAnim, {
+    toValue: 1,
+    duration: 300,
+    useNativeDriver: true,
+  }).start();
+
+  setTimeout(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => setNotification({ isVisible: false, message: '' }));
+  }, 3000);
+};
 
 
-useEffect(() => {
+
+
   const fetchUserData = async () => {
     if (!user || !user.id) return;
 
     console.log("Fetching user data...");
+    const startTime = Date.now();
+
     try {
       const response = await fetch(`${SERVER_URL}/api/user?clerkId=${user.id}`);
       console.log("Response status for user data:", response.status);
 
       const data = await response.json();
       console.log("User data response:", data);
+      console.log("Time for fetchUserData:", Date.now() - startTime, "ms");
 
       if (response.ok) {
         setUserName(data.name || "Без имени");
         setGender(data.gender || "unknown");
         setBirthDate(data.birth_date || "");
         setImage(data.image || "https://via.placeholder.com/150");
+        setUniqueCode(data.unique_code || "Не вказано");
       } else {
         console.error("Error fetching user data:", data.error);
       }
-    } catch (error) {
-      console.error("Error fetching user data:", error);
-    } finally {
-      setLoading(false);
+
+      const dogResponse = await fetch(`${SERVER_URL}/api/dogs?clerkId=${user.id}`);
+    console.log("Response status for dog data:", dogResponse.status);
+
+    const dogData = await dogResponse.json();
+    console.log("Dog data response:", dogData);
+
+    if (dogResponse.ok && dogData.length > 0) {
+
+      setBreed(dogData[0].breed || "Не вказано");
+    } else {
+      console.error("Error fetching dog data:", dogData.error || "No dog found");
+      setBreed("Не вказано");
     }
+  } catch (error) {
+    console.error("Error fetching user data:", error);
+  } finally {
+    setLoading(false);
+  }
+};
+
+const formatUniqueCode = (code) => {
+    if (!code) return "0000 0000 0000 0000"; 
+    return code.replace(/(.{4})/g, "$1 ").trim(); 
   };
 
-  fetchUserData();
-}, [user]);
+  const copyToClipboard = (text) => {
+    Clipboard.setStringAsync(text);
+    showNotification('ID скопійован');
+  };
+  
+
+const onRefresh = async () => {
+    try {
+        setRefreshing(true); 
+        await fetchUserData();
+    } catch (error) {
+        console.error("Error reload", error);
+    } finally {
+        setRefreshing(false); 
+    }
+};
+
+useEffect(() => {
+    fetchUserData();
+  }, [user]);
 
 useEffect(() => {
     console.log("Current dogs state:", dogs);
   }, [dogs]);
   
-// Получение данных о собаках поблизости
-useEffect(() => {
-  const fetchDogsNearby = async () => {
-    if (!user || !user.id) return;
 
-    console.log("Fetching nearby dogs...");
-    try {
-      const response = await fetch(`${SERVER_URL}/api/users/locations?clerkId=${user.id}`);
-      console.log("Response status for nearby dogs:", response.status);
+  useEffect(() => {
+    const fetchDogsNearby = async () => {
+      if (!user || !user.id) return;
+  
+      console.log("Fetching dogs nearby...");
+      const startTime = Date.now();
+  
+      try {
 
-      const data = await response.json();
-      console.log("Nearby dogs data response:", data);
-
-      if (response.ok) {
-        setDogs(data);
-      } else {
-        console.error("Error fetching nearby dogs:", data.error);
+        const userResponse = await fetch(`${SERVER_URL}/api/user?clerkId=${user.id}`);
+        console.log("Response status for user data:", userResponse.status);
+  
+        if (!userResponse.ok) {
+          const errorData = await userResponse.json();
+          console.error("Error fetching user data:", errorData.error);
+          return;
+        }
+  
+        const userData = await userResponse.json();
+        console.log("User data response:", userData);
+  
+        const myDog = new Dog(
+          user.id,
+          userData.breed || "unknown", 
+          userData.weight || 10, 
+          userData.age || 5, 
+          userData.emotional_status || 5, 
+          userData.activity_level || 5, 
+          parseFloat(userData.latitude) || 56.0,
+          parseFloat(userData.longitude) || 12.7, 
+          userData.after_walk_points || [],
+          userData.received_points_by_breed || [], 
+          userData.vaccination_status || {}, 
+          userData.anti_tick !== undefined ? userData.anti_tick : true 
+        );
+  
+        console.log("MyDog object:", myDog);
+  
+        const dogsResponse = await fetch(`${SERVER_URL}/api/users/locations?clerkId=${user.id}`);
+        console.log("Response status for nearby dogs:", dogsResponse.status);
+  
+        if (!dogsResponse.ok) {
+          const errorDogsData = await dogsResponse.json();
+          console.error("Error fetching nearby dogs:", errorDogsData.error);
+          return;
+        }
+  
+        const dogsData = await dogsResponse.json();
+        console.log("Nearby dogs data response:", dogsData);
+  
+        const allDogs = dogsData.map((dog, index) => ({
+          ...dog,
+          dog_id: dog.dog_id || `generated_${index}`,
+          latitude: parseFloat(dog.latitude),
+          longitude: parseFloat(dog.longitude),
+          similarity_percentage: 0,
+        }));
+  
+        console.log("All dogs:", allDogs);
+  
+        const matchedDogs = match_dogs(myDog, allDogs, 500); 
+        console.log("Matched dogs:", matchedDogs);
+  
+        setDogs(matchedDogs);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        console.log("Time for fetchDogsNearby:", Date.now() - startTime, "ms");
       }
-    } catch (error) {
-      console.error("Error fetching nearby dogs:", error);
-    }
-  };
-
-  fetchDogsNearby();
-}, [user]);
-
-// Получение данных о собаках и расчёт метчинга
+    };
+  
+    fetchDogsNearby();
+  }, [user]);
+  
 useEffect(() => {
     const fetchData = async () => {
         try {
@@ -312,30 +427,22 @@ useEffect(() => {
 
   return (
     <SafeAreaView className="flex-1 bg-white">
-      <ScrollView className="flex-1 p-5">
-
-        {/* Header */}
-        <View className="flex-row justify-between items-center">
-          <icons.WalkeyIcon />
-          <View className="flex-row items-center ml-auto">
-            <Text className="ml-2 text-sm font-semibold">
-              {userName} зараз{' '}
-            </Text>
-            <View className="relative">
-              <Text className="text-sm font-semibold">{isToggled ? 'гуляє' : 'вдома'}</Text>
-              <View className="absolute left-0 right-0 bg-black" style={{ height: 2, bottom: -1 }} />
-            </View>
-            <Switch
-              value={isToggled}
-              onValueChange={toggleSwitch}
-              thumbColor={isToggled ? '#F15F15' : '#f4f3f4'}
-              trackColor={{ false: '#767577', true: '#FED9C6' }}
-              className="ml-2"
-              style={{ marginRight: 12, transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }} 
-            />
-            <icons.BellIcon />
-          </View>
-        </View>
+      <ScrollView className="flex-1 p-5"
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing} 
+          onRefresh={onRefresh} 
+          colors={['#FF6C22']}
+          tintColor="#FF6C22" 
+          />
+        }
+      >
+    <HeaderBar
+        userName={userName}
+        isToggled={isToggled}
+        toggleSwitch={toggleSwitch}
+        onNotificationPress={() => console.log("Notification clicked")}
+      />
 
      
         <View className="bg-[#FFF7F2] rounded-2xl p-5 mt-6">
@@ -346,8 +453,21 @@ useEffect(() => {
             />
             <View className="ml-[28px]">
                 <Text className="text-lg font-bold">{userName}</Text> 
-                <Text className="text-sm text-gray-600">Мопс</Text>
-                <Text className="text-sm text-gray-600">ID: 1234 5667 8890 1232</Text>
+                <Text className="text-sm text-gray-600">{breed}</Text>
+                <TouchableOpacity
+                className="bg-white p-1 rounded-md flex-row items-center mt-2"
+                onPress={() => {
+                    copyToClipboard(uniqueCode);
+                    showNotification('ID скопійован');
+                }}
+                >
+                <Text className="text-base text-black">
+                    ID: {formatUniqueCode(uniqueCode)}
+                </Text>
+                <View className="ml-2 bg-white p-1 rounded">
+                    <icons.CopyIcon width={16} height={16} />
+                </View>
+                </TouchableOpacity>
             </View>
           </View>
 
@@ -456,6 +576,15 @@ useEffect(() => {
 
 
       </ScrollView>
+
+      {notification.isVisible && (
+        <Animated.View
+        style={{ opacity: fadeAnim }}
+        className="absolute top-12 left-5 right-5 bg-orange-500 p-4 rounded-lg shadow-lg"
+        >
+        <Text className="text-white font-bold text-center">{notification.message}</Text>
+        </Animated.View>
+    )}
     </SafeAreaView>
   );
 };

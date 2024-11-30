@@ -12,6 +12,7 @@ import { useUser } from "@clerk/clerk-expo";
 import FilterModal from "@/app/(root)/(modal)/FilterModal";
 import DogProfileModal from "@/app/(root)/(modal)/DogProfile";
 import { getServerUrl } from "@/utils/getServerUrl";
+import HeaderBar from "@/components/HeaderBar";
 
 
 const SERVER_URL = "http://192.168.0.18:3000";
@@ -276,12 +277,13 @@ const Map = () => {
           <Text className="ml-2 text-sm font-semibold">{userName} зараз </Text>
           <Text className="text-sm font-semibold">{isToggled ? "гуляє" : "вдома"}</Text>
           <Switch
-            value={isToggled}
-            onValueChange={toggleSwitch}
-            thumbColor={isToggled ? "#F15F15" : "#f4f3f4"}
-            trackColor={{ false: "#767577", true: "#FED9C6" }}
-            style={{ marginLeft: 12 }}
-          />
+        value={isToggled}
+        onValueChange={toggleSwitch}
+        thumbColor={isToggled ? '#F15F15' : '#f4f3f4'}
+        trackColor={{ false: '#FED9C6', true: '#FED9C6' }}
+        className="ml-2"
+        style={{ marginRight: 12, transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }} 
+      />
         </View>
       </View>
 

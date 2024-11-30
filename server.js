@@ -27,6 +27,26 @@ const storage = multer.diskStorage({
   },
 });
 
+ // Генерация случайного 16-значного кода
+const generateUniqueCode = async () => {
+  let isUnique = false;
+  let code = '';
+
+  while (!isUnique) {
+    code = Math.random().toString().slice(2, 18); 
+    if (code.length === 16) {
+      const existingCode = await sql`
+        SELECT unique_code FROM users WHERE unique_code = ${code};
+      `;
+      if (existingCode.length === 0) {
+        isUnique = true;
+      }
+    }
+  }
+
+  return code;
+};
+
 const upload = multer({ storage });
 
 app.use('/images', express.static(path.join(__dirname, 'images')));
@@ -47,14 +67,16 @@ app.post('/api/user', async (req, res) => {
   }
 
   try {
-      // Вставка данных в таблицу users
+      const uniqueCode = await generateUniqueCode();
+
+
       await sql`
-          INSERT INTO users (name, email, clerk_id, gender, birth_date, image)
-          VALUES (${name}, ${email}, ${clerkId}, ${gender}, ${birthDate}, ${image || null})
+          INSERT INTO users (name, email, clerk_id, gender, birth_date, image, unique_code)
+          VALUES (${name}, ${email}, ${clerkId}, ${gender}, ${birthDate}, ${image || null}, ${uniqueCode})
           ON CONFLICT (clerk_id) DO NOTHING;
       `;
 
-      // Вставка данных в таблицу dogs
+   
       const response = await sql`
           INSERT INTO dogs (clerk_id, breed, activity_level)
           VALUES (${clerkId}, ${breed}, ${activityLevel})
@@ -156,7 +178,11 @@ app.get('/api/user', async (req, res) => {
 
   try {
       console.time('DB Query Time');
-      const user = await sql`SELECT * FROM users WHERE clerk_id = ${clerkId}`;
+      const user = await sql`
+      SELECT name, email, gender, birth_date, image, unique_code
+      FROM users
+      WHERE clerk_id = ${clerkId};
+    `;
       console.timeEnd('DB Query Time');
 
       if (user.length === 0) {
@@ -218,9 +244,8 @@ app.patch('/api/user/image', upload.single('image'), async (req, res) => {
   }
 
   try {
-    const imagePath = `/images/${req.file.filename}`; // Путь к файлу
+    const imagePath = `/images/${req.file.filename}`; 
 
-    // Сохраняем путь в базу данных
     const response = await sql`
       UPDATE users
       SET image = ${imagePath}
@@ -277,7 +302,6 @@ try {
   console.log('Максимальный возраст:', maxAge);
   console.log('Минимальный возраст:', minAge);
 
-  // Получение информации о местоположении текущего пользователя
   const userLocationQuery = await sql`
     SELECT latitude, longitude FROM user_locations WHERE clerk_id = ${clerkId};
   `;
@@ -288,7 +312,6 @@ try {
 
   const userLocation = userLocationQuery[0];
 
-  // Основной запрос с фильтрацией и учетом местоположения
   const dogsQuery = await sql`
     SELECT d.breed, d.age, ul.latitude, ul.longitude, u.gender, u.name,
            earth_distance(ll_to_earth(${userLocation.latitude}, ${userLocation.longitude}),
@@ -339,7 +362,7 @@ app.get('/api/medical/records', async (req, res) => {
 
   
   const isValidDate = (dateString) => {
-    const regex = /^\d{4}-\d{2}-\d{2}$/; // Формат даты YYYY-MM-DD (для базы данных)
+    const regex = /^\d{4}-\d{2}-\d{2}$/; 
     return regex.test(dateString);
   };
   

@@ -98,8 +98,13 @@ const SignUp = () => {
               }
               
             await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
+            
+            setVerification({ 
+                state: 'pending', 
+                error: '', 
+                code: '' 
+              });
 
-            setVerification({ state: 'pending' });
             setStep(2); 
         } catch (err: any) {
             Alert.alert('Error', err.errors[0]?.longMessage || 'Something went wrong');

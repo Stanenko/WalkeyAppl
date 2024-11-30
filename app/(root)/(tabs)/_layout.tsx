@@ -1,50 +1,57 @@
 import { Tabs } from "expo-router";
 import { createStackNavigator } from '@react-navigation/stack';
 import WalkEndScreen from '@/app/(root)/(modal)/WalkEndScreen';
+import HomeNotificationModal from '@/app/(root)/(modal)/HomeNotificationModal';
+
 import { View } from "react-native";
 import { icons } from "@/constants/svg"; 
 
 const Stack = createStackNavigator();
 
 const TabIcon = ({
-  IconComponent, 
-  focused,
-}: {
+    IconComponent,
+    focused,
+  }: {
     IconComponent: React.FC<{ width: number; height: number; fill: string; style?: object }>;
     focused: boolean;
-}) => (
-    <View style={{ justifyContent: 'center', alignItems: 'center' }}>
-    <IconComponent
-      style={{
-        transform: [{ translateY: focused ? -1 : 0 }],
-      }}
-      width={28}
-      height={28}
-      fill={focused ? 'black' : 'gray'}
-    />
-    {focused && <View style={{ width: 8, height: 8, backgroundColor: 'black', borderRadius: 4, marginTop: 4 }} />}
-  </View>
-);
-
+  }) => {
+    const defaultFill = IconComponent === icons.HomeIcon ? '#FFF7F2' : '#FFE5D8';
+  
+    return (
+      <View style={{ justifyContent: 'center', alignItems: 'center' }}>
+        <IconComponent
+          style={{
+            transform: [{ translateY: focused ? -1 : 0 }],
+          }}
+          width={28}
+          height={28}
+          fill={focused ? '#FF6C22' : defaultFill}
+        />
+        {focused && <View style={{ width: 8, height: 8, backgroundColor: '#FF6C22', borderRadius: 4, marginTop: 4 }} />}
+      </View>
+    );
+  };
+  
 const TabsLayout = () => (
   <Tabs
     initialRouteName="home"
     screenOptions={{
-      tabBarActiveTintColor: "#FBFBFB",
+      tabBarActiveTintColor: "#FF6C22",
       tabBarShowLabel: false,
       tabBarStyle: {
         borderRadius: 50,
         paddingBottom: 5,
         paddingTop: 10,
         height: 80,
-        backgroundColor: "#FBFBFB",
+        backgroundColor: "#FFF7F2",
         position: "absolute",
         left: 0,
         right: 0,
         bottom: 0,
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
+        shadowOpacity: 0.2,
         shadowRadius: 10,
+        shadowColor: "#A0522D",
         elevation: 5,
       },
     }}
@@ -123,6 +130,18 @@ const Layout = () => (
         }),
       }} 
     />
+
+    <Stack.Screen
+    name="HomeNotificationModal"
+    component={HomeNotificationModal}
+    options={{
+        headerShown: false,
+        presentation: 'transparentModal', 
+        cardStyle: { backgroundColor: 'rgba(0, 0, 0, 0.5)' },
+    }}
+    />
+
+
   </Stack.Navigator>
 );
 
