@@ -11,9 +11,23 @@ import { Dog, match_dogs, calculate_geographic_distance } from "@/dogMatching";
 import { getServerUrl } from "@/utils/getServerUrl";
 import HomeNotificationModal from "@/app/(root)/(modal)/HomeNotificationModal";
 import * as Clipboard from 'expo-clipboard';
-import HeaderBar from "@/components/HeaderBar";
+
+
 
 const SERVER_URL = "http://192.168.0.18:3000";
+
+const fetchDataFromAPI = async (url, errorMessage) => {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(errorMessage);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error(errorMessage, error);
+      return null;
+    }
+  };  
 
 const windowWidth = Dimensions.get('window').width;
 
@@ -26,7 +40,7 @@ const data = [
     subtitle: "Вакцина від сказу / Комплексна вакцина",
     date: "Остання вакцина: 10 березня 2023",
     nextDate: "Наступна вакцина: 10 березня 2024",
-    description: "Не забувайте підготувати медичну картку та взяти з собою всі необхідні документи на вакцинацію.",
+    description: "Не забудьте підготувати медичну картку та взяти з собою всі необхідні документи на вакцинацію",
     backgroundColor: "#E8F3F9"
   },
   {
@@ -35,32 +49,57 @@ const data = [
     subtitle: "Протиглистовий засіб",
     date: "Останній прийом: 8 жовтня 2023",
     nextDate: "Наступний прийом: 10 жовтня 2024",
-    description: "Налаштуйте автоматичне нагадування до наступного прийому.",
+    description: "Налаштуйте автоматичне нагадування до наступного прийому",
     backgroundColor: "#E5EFE5" 
   }
 ];
 
-const ReminderCard = ({ item }) => {
-  return (
-    <View 
-      className="rounded-2xl p-4"
-      style={{ 
-        width: windowWidth - 40, 
-        backgroundColor: item.backgroundColor,
-        borderRadius: 20,
-        height: slideHeight,
-      
-      }}
-    >
-      <Text className="font-bold">{item.title}</Text>
-      <Text className="mt-2">{item.subtitle}</Text>
-      <Text className="mt-1">{item.date}</Text>
-      <Text>{item.nextDate}</Text>
-      <Text className="mt-2">{item.description}</Text>
-      {item.daysLeft && <Text className="mt-2 text-[#FF6C22] font-bold">{item.daysLeft}</Text>}
-    </View>
-  );
+const calculateDaysUntil = (nextDate) => {
+    if (!nextDate) return null; 
+    const today = new Date();
+    const targetDate = new Date(nextDate);
+
+    if (isNaN(targetDate)) {
+        console.error("Некорректная дата:", nextDate);
+        return null;
+    }
+
+    const diffTime = targetDate - today;
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 };
+
+
+const ReminderCard = ({ item, onPress }) => {
+    const daysUntilNext = item.nextDate ? calculateDaysUntil(item.nextDate) : null;
+
+    return (
+        <TouchableOpacity
+            onPress={onPress}
+            className="relative rounded-2xl p-4"
+            style={{
+                width: windowWidth - 40,
+                height: slideHeight,
+                backgroundColor: item.backgroundColor,
+            }}
+        >
+      
+            {daysUntilNext !== null && (
+                <View className="absolute top-2 right-2 bg-white rounded-full px-3 py-1 shadow-md">
+                    <Text className="font-bold text-black">
+                        Через {daysUntilNext} днів
+                    </Text>
+                </View>
+            )}
+
+            <Text className="font-bold">{item.title}</Text>
+            {item.subtitle && <Text className="mt-2">{item.subtitle}</Text>}
+            {item.date && <Text className="mt-1">{item.date}</Text>}
+            {item.nextDate && <Text>{item.nextDate}</Text>}
+            {item.description && <Text className="mt-2">{item.description}</Text>}
+        </TouchableOpacity>
+    );
+};
+
 
 const DogCard = ({ dog, onPress }) => (
   <TouchableOpacity
@@ -99,38 +138,228 @@ const DogCard = ({ dog, onPress }) => (
 );
 
 
-  const DogList = ({ dogs, onDogSelect }) => (
-    <ScrollView horizontal className="mt-3">
-      {dogs.map((dog, index) => (
-        <DogCard
-          key={dog.dog_id || `${dog.name}_${index}`}
-          dog={dog}
-          onPress={() => onDogSelect(dog)}
-        />
-      ))}
+const DogList = ({ dogs, onDogSelect }) => (
+    <ScrollView
+        horizontal
+        className="mt-3"
+        showsHorizontalScrollIndicator={false} 
+    >
+        {dogs.map((dog, index) => (
+            <TouchableOpacity
+                key={dog.dog_id || `${dog.name}_${index}`}
+                onPress={() => onDogSelect(dog)}
+                className="bg-[#FFF7F2] rounded-lg p-4"
+                style={{
+                    width: 240,
+                    height: 130,
+                    flexDirection: "row",
+                    alignItems: "center",
+                    marginRight: 10,
+                }}
+            >
+                <Image
+                    source={images.OtherDogs}
+                    defaultSource={images.OtherDogs}
+                    style={{
+                        width: 80,
+                        height: "100%",
+                        borderRadius: 12,
+                        marginRight: 10,
+                    }}
+                />
+                <View style={{ flex: 1, justifyContent: "space-between" }}>
+                    <Text className="font-bold text-black text-sm">
+                        {dog.name || "Без имени"} {dog.gender === "male" ? "♂️" : "♀️"}
+                    </Text>
+                    <Text className="text-gray-500 text-xs">{dog.breed || "Не указано"}</Text>
+                    <Text className="text-orange-500 font-bold text-xs">
+                        {dog.similarity_percentage || 0}% метч
+                    </Text>
+                </View>
+            </TouchableOpacity>
+        ))}
     </ScrollView>
-  );
-  
-  
-  
-  
+);
 
-  
 
-const SliderComponent = () => {
-  return (
-    <View>
-      <Carousel
-        loop={false}
-        width={windowWidth}
-        height={slideHeight}
-        autoPlay={false}
-        data={data}
-        scrollAnimationDuration={1000}
-        renderItem={({ item }) => <ReminderCard item={item} />}
-      />
-    </View>
-  );
+
+const SliderComponent = ({ clerkId }) => {
+    const navigation = useNavigation(); 
+
+    const [slidesData, setSlidesData] = useState([]);
+
+    const formatDateToUkrainian = (dateString) => {
+        const options = {
+            day: "numeric",
+            month: "long",
+            year: "numeric",
+        };
+        return new Date(dateString).toLocaleDateString("uk-UA", options);
+    };
+
+    const calculateDaysUntil = (nextDate) => {
+        if (!nextDate) return null;
+        const today = new Date();
+        const targetDate = new Date(nextDate);
+        if (isNaN(targetDate)) {
+            console.error("Некоректна дата:", nextDate);
+            return null;
+        }
+        const diffTime = targetDate - today;
+        return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    };
+
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const vaccinationResponse = await fetch(
+                    `${SERVER_URL}/api/vaccinations?clerkId=${clerkId}`
+                );
+                const protectionResponse = await fetch(
+                    `${SERVER_URL}/api/medical/records?clerkId=${clerkId}&type=protection`
+                );
+
+                const vaccinationData = vaccinationResponse.ok
+                    ? await vaccinationResponse.json()
+                    : [];
+                const protectionData = protectionResponse.ok
+                    ? await protectionResponse.json()
+                    : [];
+
+                const slides = [];
+
+                if (vaccinationData.length > 0) {
+                    const nearestVaccination = vaccinationData.reduce((prev, curr) => {
+                        const prevDate = new Date(prev.nextdate);
+                        const currDate = new Date(curr.nextdate);
+                        return currDate < prevDate ? curr : prev;
+                    });
+                    slides.push({
+                        id: "vaccination",
+                        type: "vaccination",
+                        title: "Вакцинація",
+                        subtitle: `Назва вакцинації: ${nearestVaccination.name}`,
+                        date: `Остання вакцина: ${formatDateToUkrainian(nearestVaccination.lastdate)}`,
+                        nextDate: `Наступна вакцина: ${formatDateToUkrainian(nearestVaccination.nextdate)}`,
+                        description:
+                            "Не забудьте підготувати медичну картку та взяти з собою всі необхідні документи на вакцинацію",
+                        backgroundColor: "#E8F3F9",
+                        daysUntilNext: calculateDaysUntil(nearestVaccination.nextdate),
+                    });
+                } else {
+                    slides.push({
+                        id: "no-vaccination",
+                        type: "vaccination",
+                        title: "Вакцинація",
+                        subtitle: null,
+                        description: "У вашого песика поки ще немає жодної інформації о вакцинаціях",
+                        backgroundColor: "#E8F3F9",
+                        icon: icons.GPlusIcon,
+                    });
+                }
+
+                if (protectionData.length > 0) {
+                    const nearestProtection = protectionData.reduce((prev, curr) => {
+                        const prevDate = new Date(prev.nextdate);
+                        const currDate = new Date(curr.nextdate);
+                        return currDate < prevDate ? curr : prev;
+                    });
+                    slides.push({
+                        id: "protection",
+                        type: "protection",
+                        title: "Ліки",
+                        subtitle: nearestProtection.name,
+                        date: `Останній прийом: ${formatDateToUkrainian(nearestProtection.lastdate)}`,
+                        nextDate: `Наступний прийом: ${formatDateToUkrainian(nearestProtection.nextdate)}`,
+                        description: "Налаштуйте автоматичне нагадування до наступного прийому",
+                        backgroundColor: "#E5EFE5",
+                        daysUntilNext: calculateDaysUntil(nearestProtection.nextdate),
+                    });
+                } else {
+                    slides.push({
+                        id: "no-protection",
+                        type: "protection",
+                        title: "Ліки",
+                        subtitle: null,
+                        description: "У вашого песика поки ще немає жодної інформації о ліках",
+                        backgroundColor: "#E5EFE5",
+                        icon: icons.GPlusIcon,
+                    });
+                }
+
+                setSlidesData(slides);
+            } catch (error) {
+                console.error("Помилка завантаження даних:", error);
+            }
+        };
+
+        fetchData();
+    }, [clerkId]);
+
+    if (slidesData.length === 0) {
+        return <ActivityIndicator size="large" color="#FF6C22" />;
+    }
+
+    return (
+        <View>
+            <Carousel
+                loop={false}
+                width={windowWidth}
+                height={slideHeight}
+                autoPlay={false}
+                data={slidesData}
+                scrollAnimationDuration={1000}
+                renderItem={({ item }) => (
+                    <TouchableOpacity
+                        onPress={() => navigation.navigate("doctor")}
+                        className="rounded-2xl p-4"
+                        style={{
+                            width: windowWidth - 40,
+                            backgroundColor: item.backgroundColor,
+                            height: slideHeight,
+                            paddingTop: 20,
+                            paddingBottom: 20,
+                            borderRadius: 25,
+                        }}
+                    >
+                        {item.daysUntilNext !== null && item.daysUntilNext > 0 && (
+                            <View className="absolute top-6 right-6 bg-white rounded-full px-3 py-1">
+                                <Text className="font-bold text-black">
+                                    Через {item.daysUntilNext} днів
+                                </Text>
+                            </View>
+                        )}
+                        <Text className="font-bold text-xl">{item.title}</Text>
+                        {item.subtitle && (
+                            <Text className="mt-2 font-bold">{item.subtitle}</Text>
+                        )}
+                        {item.date && <Text className="mt-2">{item.date}</Text>}
+                        {item.nextDate && <Text>{item.nextDate}</Text>}
+                        {item.description && <Text className="mt-4">{item.description}</Text>}
+                        {item.icon && (
+                            <View className="flex-row items-center mt-4">
+                                <Text className="font-bold mr-2">Додати</Text>
+                                <item.icon fill="black" width={30} height={30} />
+                            </View>
+                        )}
+                    </TouchableOpacity>
+                )}
+            />
+        </View>
+    );
+};
+
+
+
+
+
+const formatDateToUkrainian = (dateString) => {
+    const options = {
+        day: 'numeric',  
+        month: 'long', 
+        year: 'numeric', 
+    };
+    return new Date(dateString).toLocaleDateString('uk-UA', options);
 };
 
 const Home = () => {
@@ -152,6 +381,10 @@ const Home = () => {
   const [notification, setNotification] = useState({ isVisible: false, message: '' });
   const [fadeAnim] = useState(new Animated.Value(0));
 
+  useEffect(() => {
+    console.log("Clerk ID:", user?.id);
+}, [user]);
+
 const showNotification = (text) => {
   setNotification({ isVisible: true, message: text });
   Animated.timing(fadeAnim, {
@@ -169,52 +402,36 @@ const showNotification = (text) => {
   }, 3000);
 };
 
-
-
-
-  const fetchUserData = async () => {
+const fetchUserData = async () => {
     if (!user || !user.id) return;
-
-    console.log("Fetching user data...");
-    const startTime = Date.now();
-
-    try {
-      const response = await fetch(`${SERVER_URL}/api/user?clerkId=${user.id}`);
-      console.log("Response status for user data:", response.status);
-
-      const data = await response.json();
-      console.log("User data response:", data);
-      console.log("Time for fetchUserData:", Date.now() - startTime, "ms");
-
-      if (response.ok) {
-        setUserName(data.name || "Без имени");
-        setGender(data.gender || "unknown");
-        setBirthDate(data.birth_date || "");
-        setImage(data.image || "https://via.placeholder.com/150");
-        setUniqueCode(data.unique_code || "Не вказано");
-      } else {
-        console.error("Error fetching user data:", data.error);
-      }
-
-      const dogResponse = await fetch(`${SERVER_URL}/api/dogs?clerkId=${user.id}`);
-    console.log("Response status for dog data:", dogResponse.status);
-
-    const dogData = await dogResponse.json();
-    console.log("Dog data response:", dogData);
-
-    if (dogResponse.ok && dogData.length > 0) {
-
+  
+    const userData = await fetchDataFromAPI(
+      `${SERVER_URL}/api/user?clerkId=${user.id}`,
+      "Error fetching user data"
+    );
+  
+    const dogData = await fetchDataFromAPI(
+      `${SERVER_URL}/api/dogs/user?clerkId=${user.id}`,
+      "Error fetching dog data"
+    );
+  
+    if (userData) {
+      setUserName(userData.name || "Без имени");
+      setGender(userData.gender || "unknown");
+      setBirthDate(userData.birth_date || "");
+      setImage(userData.image || "https://via.placeholder.com/150");
+      setUniqueCode(userData.unique_code || "Не вказано");
+    }
+  
+    if (dogData && dogData.length > 0) {
       setBreed(dogData[0].breed || "Не вказано");
     } else {
-      console.error("Error fetching dog data:", dogData.error || "No dog found");
       setBreed("Не вказано");
     }
-  } catch (error) {
-    console.error("Error fetching user data:", error);
-  } finally {
+  
     setLoading(false);
-  }
-};
+  };
+  
 
 const formatUniqueCode = (code) => {
     if (!code) return "0000 0000 0000 0000"; 
@@ -239,8 +456,14 @@ const onRefresh = async () => {
 };
 
 useEffect(() => {
-    fetchUserData();
+    const fetchInitialData = async () => {
+      await fetchUserData();
+      await fetchDogsNearby();
+    };
+  
+    fetchInitialData();
   }, [user]);
+  
 
 useEffect(() => {
     console.log("Current dogs state:", dogs);
@@ -423,7 +646,6 @@ useEffect(() => {
     ); 
   }
 
-  
 
   return (
     <SafeAreaView className="flex-1 bg-white">
@@ -437,12 +659,37 @@ useEffect(() => {
           />
         }
       >
-    <HeaderBar
-        userName={userName}
-        isToggled={isToggled}
-        toggleSwitch={toggleSwitch}
-        onNotificationPress={() => console.log("Notification clicked")}
-      />
+
+        <View className="flex-row justify-between items-center">
+          <icons.WalkeyIcon />
+          <View className="flex-row items-center ml-auto">
+            <Text className="ml-2 text-sm font-semibold">
+              {userName} зараз{' '}
+            </Text>
+            <View className="relative">
+              <Text className="text-sm font-semibold">{isToggled ? 'гуляє' : 'вдома'}</Text>
+              <View className="absolute left-0 right-0 bg-black" style={{ height: 2, bottom: -1 }} />
+            </View>
+            <Switch
+              value={isToggled}
+              onValueChange={toggleSwitch}
+              thumbColor={isToggled ? '#F15F15' : '#f4f3f4'}
+              trackColor={{ false: '#FED9C6', true: '#FED9C6' }}
+              className="ml-2"
+              style={{ marginRight: 12, transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }} 
+            />
+           <TouchableOpacity
+            onPress={() => {
+                console.log("Bell icon clicked");
+                navigation.navigate('HomeNotificationModal');
+            }}
+            >
+            <icons.BellIcon />
+            </TouchableOpacity>
+
+
+          </View>
+        </View>
 
      
         <View className="bg-[#FFF7F2] rounded-2xl p-5 mt-6">
@@ -549,7 +796,7 @@ useEffect(() => {
             <icons.PenIcon />
           </View>
           <View style={{ marginTop: 13 }}>
-            <SliderComponent />
+            <SliderComponent clerkId={user?.id}/>
           </View>
         </View>
 
@@ -557,10 +804,10 @@ useEffect(() => {
 <View className="mt-5">
     <Text className="font-bold text-[18px] mr-2">Хто поруч на прогулянці?</Text>
     <DogList
-  dogs={dogs}
-  onDogSelect={(dog) => {
-    setSelectedDog(dog);
-    setModalVisible(true);
+    dogs={dogs}
+    onDogSelect={(dog) => {
+        setSelectedDog(dog);
+        setModalVisible(true);
   }}
 />
 

@@ -91,9 +91,32 @@ app.post('/api/user', async (req, res) => {
   }
 });
 
+app.get('/api/dogs/user', async (req, res) => {
+  const { clerkId } = req.query;
+
+  if (!clerkId) {
+      return res.status(400).json({ error: 'clerkId is required' });
+  }
+
+  try {
+      const dogs = await sql`
+          SELECT * FROM dogs
+          WHERE clerk_id = ${clerkId};
+      `;
+
+      if (dogs.length === 0) {
+          return res.status(404).json({ error: 'No dogs found for the current user' });
+      }
+
+      res.status(200).json(dogs);
+  } catch (error) {
+      console.error('Error fetching dogs:', error);
+      res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
 
 
-app.get('/api/dogs', async (req, res) => {
+app.get('/api/dogs/matched', async (req, res) => {
   const { breed, minAge, maxAge, clerkId } = req.query;
 
   if (!clerkId) {
@@ -359,8 +382,34 @@ app.get('/api/medical/records', async (req, res) => {
   }
 });
 
+app.get('/api/vaccinations', async (req, res) => {
+  const { clerkId } = req.query;
+  console.log("Received clerkId:", clerkId); 
 
-  
+  if (!clerkId) {
+    return res.status(400).json({ error: 'clerkId is required' });
+  }
+
+  try {
+    console.log("Executing SQL query for clerkId:", clerkId);
+    const vaccinations = await sql`
+      SELECT name, type, lastdate, nextdate
+      FROM medical_records
+      WHERE clerk_id = ${clerkId} AND type = 'vaccination'
+      ORDER BY nextdate ASC;
+    `;
+
+    if (vaccinations.length === 0) {
+      return res.status(404).json({ error: 'No vaccinations found' });
+    }
+
+    res.status(200).json(vaccinations);
+  } catch (error) {
+    console.error('Error fetching vaccinations:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
   const isValidDate = (dateString) => {
     const regex = /^\d{4}-\d{2}-\d{2}$/; 
     return regex.test(dateString);

@@ -6,6 +6,7 @@ import AddProtectionModal from '@/app/(root)/(modal)/AddProtectionModal';
 import SterilizationToggle from '@/components/SterilizationToggle';
 import { getServerUrl } from "@/utils/getServerUrl";
 import { useUser } from "@clerk/clerk-expo";
+import { icons } from "@/constants/svg";
 
 const SERVER_URL = "http://192.168.0.18:3000";
 
@@ -100,69 +101,109 @@ const Doctor = () => {
     }
   };
 
+  const renderMedicalRecordHeader = () => (
+    <View
+      style={{
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 8,
+      }}
+    >
+      <Text
+        style={{
+          flex: 1,
+          marginRight: 10,
+          fontWeight: 'bold',
+          textAlign: 'left',
+        }}
+      >
+        Назва
+      </Text>
+      <Text
+        style={{
+          width: 100,
+          textAlign: 'center',
+          fontWeight: 'bold',
+        }}
+      >
+        Остання
+      </Text>
+      <Text
+        style={{
+          width: 100,
+          textAlign: 'center',
+          fontWeight: 'bold',
+        }}
+      >
+        Наступна
+      </Text>
+    </View>
+  );
+
   const renderMedicalRecordItem = ({ item }) => {
     if (!item || !item.name || !item.lastDate || !item.nextDate) {
       console.warn('Invalid item data:', item);
       return null;
     }
 
+    const today = new Date();
+    const nextDate = new Date(item.nextDate);
+    const diffInDays = (nextDate - today) / (1000 * 60 * 60 * 24);
+  
+    let nextDateColor = 'black';
+    if (diffInDays <= 30) {
+      nextDateColor = '#C92424'; 
+    } else if (diffInDays <= 60) {
+      nextDateColor = '#E58080'; 
+    }
+  
     return (
-        <View
-          style={{
-            flexDirection: 'row',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            paddingVertical: 8,
-            borderBottomWidth: 1,
-            borderBottomColor: '#E5E5E5',
-          }}
-        >
-   
-          <Text
-            style={{
-              flex: 1,
-              marginRight: 10,
-              fontWeight: '500',
-              textAlign: 'left',
-              flexShrink: 1, 
-            }}
-            numberOfLines={1}
-          >
-            {item.name}
-          </Text>
-    
-      
-          <Text
-            style={{
-              width: 100, 
-              textAlign: 'center',
-              fontWeight: '400',
-              color: 'gray',
-              flexShrink: 1, 
-            }}
-          >
-            {new Date(item.lastDate).toLocaleDateString()}
-          </Text>
-    
-
-          <Text
-            style={{
-              width: 100, 
-              textAlign: 'center',
-              fontWeight: '500',
-              color:
-                new Date(item.nextDate) <
-                new Date(new Date().setMonth(new Date().getMonth() + 1))
-                  ? 'red'
-                  : 'black',
-              flexShrink: 1, 
-            }}
-          >
-            {new Date(item.nextDate).toLocaleDateString()}
-          </Text>
-        </View>
-      );
-    };
+      <View
+      style={{
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 8,
+      }}
+    >
+      <Text
+        style={{
+          flex: 1,
+          marginRight: 10,
+          fontWeight: '500',
+          textAlign: 'left',
+          flexShrink: 1,
+        }}
+        numberOfLines={1}
+      >
+        {item.name}
+      </Text>
+      <Text
+        style={{
+          width: 100,
+          textAlign: 'center',
+          fontWeight: '400',
+          color: 'gray',
+          flexShrink: 1,
+        }}
+      >
+        {new Date(item.lastDate).toLocaleDateString()}
+      </Text>
+      <Text
+        style={{
+          width: 100,
+          textAlign: 'center',
+          fontWeight: '500',
+          color: nextDateColor,
+          flexShrink: 1,
+        }}
+      >
+        {new Date(item.nextDate).toLocaleDateString()}
+      </Text>
+    </View>
+  );
+};
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: 'white', paddingHorizontal: 20 }}>
@@ -183,15 +224,26 @@ const Doctor = () => {
         <ActivityIndicator size="large" color="#FF6C22" />
       ) : (
         <FlatList
+          ListHeaderComponent={renderMedicalRecordHeader}
           data={vaccinations}
           renderItem={renderMedicalRecordItem}
           keyExtractor={(item) => item.id.toString()}
           ListFooterComponent={
             <TouchableOpacity
               onPress={() => setIsVaccinationModalVisible(true)}
-              style={{ marginTop: 10, padding: 10, backgroundColor: '#E5E5E5', borderRadius: 10 }}
+              style={{
+                marginTop: 10,
+                paddingVertical: 12,
+                paddingHorizontal: 20,
+                backgroundColor: '#F6F6F6',
+                borderRadius: 10,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
             >
               <Text style={{ textAlign: 'center', fontWeight: 'bold' }}>Додати вакцинацію</Text>
+              <icons.GPlusIcon width={20} height={20} fill="#000000" />
             </TouchableOpacity>
           }
         />
@@ -202,15 +254,26 @@ const Doctor = () => {
         <ActivityIndicator size="large" color="#FF6C22" />
       ) : (
         <FlatList
+          ListHeaderComponent={renderMedicalRecordHeader}
           data={protections}
           renderItem={renderMedicalRecordItem}
           keyExtractor={(item) => item.id.toString()}
           ListFooterComponent={
             <TouchableOpacity
               onPress={() => setIsProtectionModalVisible(true)}
-              style={{ marginTop: 10, padding: 10, backgroundColor: '#E5E5E5', borderRadius: 10 }}
+              style={{
+                marginTop: 10,
+                paddingVertical: 12,
+                paddingHorizontal: 20,
+                backgroundColor: '#F6F6F6',
+                borderRadius: 10,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
             >
               <Text style={{ textAlign: 'center', fontWeight: 'bold' }}>Додати захист</Text>
+              <icons.GPlusIcon width={20} height={20} fill="#000000" />
             </TouchableOpacity>
           }
         />
