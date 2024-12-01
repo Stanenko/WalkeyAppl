@@ -145,7 +145,7 @@ const DogList = ({ dogs, onDogSelect }) => {
                     >
                     <Text
                         style={{
-                        fontSize: 20,
+                        fontSize: 16,
                         fontWeight: "bold",
                         color: "#000",
                         }}
@@ -167,7 +167,7 @@ const DogList = ({ dogs, onDogSelect }) => {
                     >{dog.breed || "Не указано"}</Text>
                      <Text
                         style={{
-                            fontSize: 14,
+                            fontSize: 12,
                             color: "#FF6C22",
                             fontWeight: "bold",
                             marginTop: 6,

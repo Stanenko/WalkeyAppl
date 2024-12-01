@@ -208,7 +208,7 @@ const Doctor = () => {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: 'white', paddingHorizontal: 20 }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginVertical: 20 }}>
-        <Text style={{ fontSize: 24, fontWeight: 'bold' }}>Медичні дані</Text>
+        <Text style={{ fontSize: 22, fontWeight: 'bold' }}>Медичні дані</Text>
       </View>
 
       <SterilizationToggle

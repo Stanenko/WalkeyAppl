@@ -172,7 +172,7 @@ const Emotions = () => {
     
             <View className="flex-row items-center justify-center px-4 py-3 mt-2">
                 <View>
-                    <Text style={{ fontSize: 24, fontWeight: 'bold', textAlign: 'center' }}>Налаштування</Text>
+                    <Text style={{ fontSize: 22, fontWeight: 'bold', textAlign: 'center' }}>Налаштування</Text>
                     <Text style={{ marginTop: 10 }} className="text-md text-gray-500 text-center">
                         {userName}
                     </Text>

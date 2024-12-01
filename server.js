@@ -313,7 +313,7 @@ app.patch('/api/user/location', async (req, res) => {
 });
 
 app.get('/api/users/locations', async (req, res) => {
-const { clerkId, breed, maxAge, minAge } = req.query;
+const { clerkId, breed, maxAge, minAge, gender } = req.query;
 
 if (!clerkId) {
   return res.status(400).json({ error: 'clerkId is required' });
@@ -322,6 +322,7 @@ if (!clerkId) {
 try {
   console.log('Фильтр породы:', breed);
   console.log('ID пользователя:', clerkId);
+  console.log('Пол:', gender);
   console.log('Максимальный возраст:', maxAge);
   console.log('Минимальный возраст:', minAge);
 
@@ -334,20 +335,20 @@ try {
   }
 
   const userLocation = userLocationQuery[0];
-
   const dogsQuery = await sql`
-    SELECT d.breed, d.age, ul.latitude, ul.longitude, u.gender, u.name,
-           earth_distance(ll_to_earth(${userLocation.latitude}, ${userLocation.longitude}),
-                          ll_to_earth(ul.latitude, ul.longitude)) AS distance
-    FROM dogs d
-    JOIN user_locations ul ON d.clerk_id = ul.clerk_id
-    JOIN users u ON d.clerk_id = u.clerk_id
-    WHERE d.clerk_id != ${clerkId}
-    AND (COALESCE(${breed}, '') = '' OR LOWER(d.breed) = LOWER(${breed}))
-    AND (COALESCE(${maxAge}, '') = '' OR d.age <= ${maxAge})
-    AND (COALESCE(${minAge}, '') = '' OR d.age >= ${minAge})
-    ORDER BY distance ASC;
-  `;
+  SELECT d.breed, d.age, ul.latitude, ul.longitude, u.gender, u.name,
+         earth_distance(ll_to_earth(${userLocation.latitude}, ${userLocation.longitude}),
+                        ll_to_earth(ul.latitude, ul.longitude)) AS distance
+  FROM dogs d
+  JOIN user_locations ul ON d.clerk_id = ul.clerk_id
+  JOIN users u ON d.clerk_id = u.clerk_id
+  WHERE d.clerk_id != ${clerkId}
+  AND (COALESCE(${gender}, '') = '' OR LOWER(u.gender) = LOWER(${gender}))
+  AND (COALESCE(${breed}, '') = '' OR LOWER(d.breed) = LOWER(${breed}))
+  AND (COALESCE(${maxAge}, '') = '' OR d.age <= ${maxAge})
+  AND (COALESCE(${minAge}, '') = '' OR d.age >= ${minAge})
+  ORDER BY distance ASC;
+`;
 
   console.log('Результаты запроса собак:', dogsQuery);
 

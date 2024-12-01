@@ -316,6 +316,7 @@ const Map = () => {
             </View>
           </Marker>
 
+
           {otherUsersLocations.map((location, index) => {
             const key = `${location.name}-${location.latitude}-${location.longitude}`;
 
