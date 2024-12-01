@@ -65,8 +65,10 @@ const calculateDaysUntil = (nextDate) => {
     }
 
     const diffTime = targetDate - today;
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return days > 0 ? days : null; 
 };
+
 
 
 const ReminderCard = ({ item, onPress }) => {
@@ -101,44 +103,10 @@ const ReminderCard = ({ item, onPress }) => {
 };
 
 
-const DogCard = ({ dog, onPress }) => (
-  <TouchableOpacity
-    key={dog.dog_id}
-    onPress={onPress}
-    className="bg-[#FFF7F2] rounded-lg p-4"
-    style={{
-      width: 240,
-      height: 130,
-      flexDirection: "row",
-      alignItems: "center",
-      marginRight: 10,
-    }}
-  >
-    <Image
-      source={images.OtherDogs}
-      defaultSource={images.OtherDogs}
-      style={{
-        width: 80,
-        height: "100%",
-        borderRadius: 12,
-        marginRight: 10,
-      }}
-    />
+const DogList = ({ dogs, onDogSelect }) => {
+    console.log("Rendering DogList with dogs:", dogs);
 
-    <View style={{ flex: 1, justifyContent: "space-between" }}>
-        <Text className="font-bold text-black text-sm">
-            {dog.name || "Без имени"} {dog.gender === "male" ? "♂️" : "♀️"}
-        </Text>
-      <Text className="text-gray-500 text-xs">{dog.breed || "Не указано"}</Text>
-      <Text className="text-orange-500 font-bold text-xs">
-        {dog.similarity_percentage || 0}% метч
-      </Text>
-    </View>
-  </TouchableOpacity>
-);
-
-
-const DogList = ({ dogs, onDogSelect }) => (
+    return (
     <ScrollView
         horizontal
         className="mt-3"
@@ -168,11 +136,46 @@ const DogList = ({ dogs, onDogSelect }) => (
                     }}
                 />
                 <View style={{ flex: 1, justifyContent: "space-between" }}>
-                    <Text className="font-bold text-black text-sm">
-                        {dog.name || "Без имени"} {dog.gender === "male" ? "♂️" : "♀️"}
+                <View
+                    style={{
+                        flexDirection: "row",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                    }}
+                    >
+                    <Text
+                        style={{
+                        fontSize: 20,
+                        fontWeight: "bold",
+                        color: "#000",
+                        }}
+                    >
+                        {dog.name || "Без имени"}
                     </Text>
-                    <Text className="text-gray-500 text-xs">{dog.breed || "Не указано"}</Text>
-                    <Text className="text-orange-500 font-bold text-xs">
+                    {dog.gender === "male" ? (
+                        <icons.MaleIcon width={18} height={18} color="black"/>
+                    ) : (
+                        <icons.FemaleIcon width={22} height={22} color="black"/>
+                    )}
+                </View>
+                    <Text
+                        style={{
+                            fontSize: 14,
+                            color: "#6B7280",
+                            marginTop: 4,
+                        }}
+                    >{dog.breed || "Не указано"}</Text>
+                     <Text
+                        style={{
+                            fontSize: 14,
+                            color: "#FF6C22",
+                            fontWeight: "bold",
+                            marginTop: 6,
+                        }}
+                        >
+                        {dog.distance ? `${Math.round(dog.distance)} м` : "Расстояние неизвестно"}
+                    </Text>
+                    <Text className="text-orange-500 font-bold text-xs mt-1">
                         {dog.similarity_percentage || 0}% метч
                     </Text>
                 </View>
@@ -180,8 +183,7 @@ const DogList = ({ dogs, onDogSelect }) => (
         ))}
     </ScrollView>
 );
-
-
+};
 
 const SliderComponent = ({ clerkId }) => {
     const navigation = useNavigation(); 
@@ -218,16 +220,21 @@ const SliderComponent = ({ clerkId }) => {
                 const protectionResponse = await fetch(
                     `${SERVER_URL}/api/medical/records?clerkId=${clerkId}&type=protection`
                 );
-
-                const vaccinationData = vaccinationResponse.ok
+    
+                let vaccinationData = vaccinationResponse.ok
                     ? await vaccinationResponse.json()
                     : [];
-                const protectionData = protectionResponse.ok
+                let protectionData = protectionResponse.ok
                     ? await protectionResponse.json()
                     : [];
-
+    
+                const today = new Date();
+    
+                vaccinationData = vaccinationData.filter(item => new Date(item.nextdate) >= today);
+                protectionData = protectionData.filter(item => new Date(item.nextdate) >= today);
+    
                 const slides = [];
-
+    
                 if (vaccinationData.length > 0) {
                     const nearestVaccination = vaccinationData.reduce((prev, curr) => {
                         const prevDate = new Date(prev.nextdate);
@@ -257,7 +264,7 @@ const SliderComponent = ({ clerkId }) => {
                         icon: icons.GPlusIcon,
                     });
                 }
-
+    
                 if (protectionData.length > 0) {
                     const nearestProtection = protectionData.reduce((prev, curr) => {
                         const prevDate = new Date(prev.nextdate);
@@ -286,15 +293,16 @@ const SliderComponent = ({ clerkId }) => {
                         icon: icons.GPlusIcon,
                     });
                 }
-
+    
                 setSlidesData(slides);
             } catch (error) {
                 console.error("Помилка завантаження даних:", error);
             }
         };
-
+    
         fetchData();
     }, [clerkId]);
+    
 
     if (slidesData.length === 0) {
         return <ActivityIndicator size="large" color="#FF6C22" />;
@@ -534,6 +542,8 @@ useEffect(() => {
         console.log("Matched dogs:", matchedDogs);
   
         setDogs(matchedDogs);
+        console.log("Final matched dogs in state:", matchedDogs);
+
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -803,6 +813,7 @@ useEffect(() => {
      
 <View className="mt-5">
     <Text className="font-bold text-[18px] mr-2">Хто поруч на прогулянці?</Text>
+    {console.log("Dogs passed to DogList:", dogs)}
     <DogList
     dogs={dogs}
     onDogSelect={(dog) => {
