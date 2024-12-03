@@ -5,14 +5,18 @@ import { Camera } from 'expo-camera';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { icons } from '@/constants/svg'; 
 
-const PermissionsModal = ({ isVisible, onClose }) => {
-  const [locationPermission, setLocationPermission] = useState(false);
-  const [cameraPermission, setCameraPermission] = useState(false);
+interface PermissionsModalProps {
+  isVisible: boolean;
+  onClose: () => void;
+}
 
-  const handleLocationPermission = async (value) => {
+const PermissionsModal: React.FC<PermissionsModalProps> = ({ isVisible, onClose }) => {
+  const [locationPermission, setLocationPermission] = useState<boolean>(false);
+  const [cameraPermission, setCameraPermission] = useState<boolean>(false);
+
+  const handleLocationPermission = async (value: boolean) => {
     try {
       if (value) {
-  
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status === 'granted') {
           setLocationPermission(true);
@@ -22,7 +26,6 @@ const PermissionsModal = ({ isVisible, onClose }) => {
           Alert.alert('Локація', 'Доступ до локації відхилено.');
         }
       } else {
-   
         setLocationPermission(false);
         Alert.alert(
           'Локація',
@@ -39,10 +42,9 @@ const PermissionsModal = ({ isVisible, onClose }) => {
     }
   };
 
-  const handleCameraPermission = async (value) => {
+  const handleCameraPermission = async (value: boolean) => {
     try {
       if (value) {
-      
         const { status } = await Camera.requestCameraPermissionsAsync();
         if (status === 'granted') {
           setCameraPermission(true);
@@ -52,7 +54,6 @@ const PermissionsModal = ({ isVisible, onClose }) => {
           Alert.alert('Камера', 'Доступ до камери відхилено.');
         }
       } else {
-     
         setCameraPermission(false);
         Alert.alert(
           'Камера',
@@ -72,7 +73,6 @@ const PermissionsModal = ({ isVisible, onClose }) => {
   return (
     <Modal visible={isVisible} transparent={true} animationType="slide">
       <SafeAreaView style={styles.container}>
- 
         <TouchableOpacity style={styles.closeButton} onPress={onClose}>
           <icons.ArrowLeft width={24} height={24} style={{ color: '#000' }} />
         </TouchableOpacity>
@@ -80,7 +80,6 @@ const PermissionsModal = ({ isVisible, onClose }) => {
         <View style={styles.content}>
           <Text style={styles.title}>Дозволи</Text>
 
-     
           <View style={styles.permissionItem}>
             <Text style={styles.permissionLabel}>
               Дозволити відслідковувати місцезнаходження для пропозицій прогулянок та сповіщень про друзів поблизу.
@@ -93,7 +92,6 @@ const PermissionsModal = ({ isVisible, onClose }) => {
             />
           </View>
 
-   
           <View style={styles.permissionItem}>
             <Text style={styles.permissionLabel}>
               Дозволити доступ до камери для відстеження емоційного стану песика.
