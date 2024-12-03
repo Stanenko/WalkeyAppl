@@ -12,8 +12,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import { icons } from "@/constants/svg";
 
+interface CustomCheckBoxProps {
+  label: string;
+  value: boolean;
+  onValueChange: (newValue: boolean) => void;
+}
 
-const CustomCheckBox = ({ label, value, onValueChange }) => (
+const CustomCheckBox: React.FC<CustomCheckBoxProps> = ({ label, value, onValueChange }) => (
   <TouchableOpacity
     style={styles.checkBoxContainer}
     onPress={() => onValueChange(!value)}
@@ -27,18 +32,22 @@ const CustomCheckBox = ({ label, value, onValueChange }) => (
   </TouchableOpacity>
 );
 
-const NotificationsModal = ({ isVisible, onClose }) => {
-  const [toggleState1, setToggleState1] = useState(false);
-  const [toggleState2, setToggleState2] = useState(false);
-  const [checkBoxState1, setCheckBoxState1] = useState(false);
-  const [checkBoxState2, setCheckBoxState2] = useState(false);
-  const [checkBoxState3, setCheckBoxState3] = useState(false);
-  const [checkBoxState4, setCheckBoxState4] = useState(false);
+interface NotificationsModalProps {
+  isVisible: boolean;
+  onClose: () => void;
+}
+
+const NotificationsModal: React.FC<NotificationsModalProps> = ({ isVisible, onClose }) => {
+  const [toggleState1, setToggleState1] = useState<boolean>(false);
+  const [toggleState2, setToggleState2] = useState<boolean>(false);
+  const [checkBoxState1, setCheckBoxState1] = useState<boolean>(false);
+  const [checkBoxState2, setCheckBoxState2] = useState<boolean>(false);
+  const [checkBoxState3, setCheckBoxState3] = useState<boolean>(false);
+  const [checkBoxState4, setCheckBoxState4] = useState<boolean>(false);
 
   return (
     <Modal visible={isVisible} transparent={true} animationType="slide">
       <SafeAreaView style={styles.container}>
-    
         <TouchableOpacity style={styles.closeButton} onPress={onClose}>
           <icons.ArrowLeft width={24} height={24} style={{ color: "#000" }} />
         </TouchableOpacity>
@@ -47,7 +56,6 @@ const NotificationsModal = ({ isVisible, onClose }) => {
           <View style={styles.content}>
             <Text style={styles.title}>Повідомлення</Text>
 
-        
             <View style={styles.setting}>
               <Text style={styles.settingLabel}>
                 Запит дружби{"\n"}
@@ -78,7 +86,6 @@ const NotificationsModal = ({ isVisible, onClose }) => {
               />
             </View>
 
-        
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>
                 Сповіщення про небезпеку поблизу
@@ -149,12 +156,12 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     color: "#000",
-    marginTop: 10, 
+    marginTop: 10,
   },
   settingDescription: {
     fontSize: 14,
     color: "#767577",
-    marginTop: 5, 
+    marginTop: 5,
   },
   section: {
     marginTop: 20,
@@ -166,7 +173,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "bold",
     marginBottom: 10,
-    marginTop: 15, 
+    marginTop: 15,
   },
   checkBoxContainer: {
     flexDirection: "row",

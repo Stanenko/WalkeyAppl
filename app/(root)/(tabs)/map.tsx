@@ -2,7 +2,6 @@ import { View, Switch, Image, Text, Button, TouchableOpacity, Alert } from "reac
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useState, useEffect } from "react";
 import { icons } from "@/constants/svg";
-import MapView, { PROVIDER_DEFAULT, Marker } from "react-native-maps";
 import * as Location from "expo-location";
 import NetInfo from "@react-native-community/netinfo";
 import { Linking } from "react-native";

@@ -15,29 +15,36 @@ import {
 
 const screenHeight = Dimensions.get('window').height;
 
-const AddVaccinationModal = ({ isVisible, onClose, onAddRecord }) => {
-  const [type, setType] = useState('vaccination'); 
-  const [name, setName] = useState('');
-  const [lastDate, setLastDate] = useState('');
-  const [nextDate, setNextDate] = useState('');
+interface AddVaccinationModalProps {
+  isVisible: boolean;
+  onClose: () => void;
+  onAddRecord: (recordData: { type: 'vaccination' | 'protection'; name: string; lastDate: string; nextDate: string }) => Promise<void>;
+}
+
+
+const AddVaccinationModal: React.FC<AddVaccinationModalProps> = ({ isVisible, onClose, onAddRecord }) => {
+  const [type] = useState<'vaccination' | 'protection'>('vaccination');
+  const [name, setName] = useState<string>('');
+  const [lastDate, setLastDate] = useState<string>('');
+  const [nextDate, setNextDate] = useState<string>('');
 
   const handleAddRecord = async () => {
     if (!name || !lastDate || !nextDate) {
-      Alert.alert('Ошибка', 'Пожалуйста, заполните все поля');
+      Alert.alert('Помилка', 'Будь ласка, заповніть усі поля');
       return;
     }
 
     const recordData = { type, name, lastDate, nextDate };
     try {
-      console.log('Данные для добавления:', recordData);
+      console.log('Дані для додавання:', recordData);
       await onAddRecord(recordData); 
       onClose();
       setName('');
       setLastDate('');
       setNextDate('');
     } catch (error) {
-      console.error('Error in handleAddRecord:', error);
-      Alert.alert('Ошибка', 'Не удалось добавить запись');
+      console.error('Помилка в handleAddRecord:', error);
+      Alert.alert('Помилка', 'Не вдалося додати запис');
     }
   };
 
@@ -65,7 +72,7 @@ const AddVaccinationModal = ({ isVisible, onClose, onAddRecord }) => {
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                marginBottom: 45, // Увеличенный отступ
+                marginBottom: 45,
               }}
             >
               <Text

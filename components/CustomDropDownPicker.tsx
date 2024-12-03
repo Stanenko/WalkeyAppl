@@ -20,7 +20,7 @@ const CustomDropDownPicker = <T extends string | number | boolean>({
       const lowerCaseInput = inputValue.toLowerCase();
       setFilteredItems(
         (props.items || []).filter((item) =>
-          item.label.toLowerCase().includes(lowerCaseInput)
+          item.label?.toLowerCase().includes(lowerCaseInput)
         )
       );
     }
@@ -50,7 +50,7 @@ const CustomDropDownPicker = <T extends string | number | boolean>({
       dropDownContainerStyle={{
         borderWidth: 0,
         backgroundColor: "white",
-        shadowColor: "rgba(0, 0, 0, 0.1)",
+        boxShadow: "rgba(0, 0, 0, 0.1)",
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 5,
