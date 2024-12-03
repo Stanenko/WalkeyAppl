@@ -15,13 +15,19 @@ import {
 
 const screenHeight = Dimensions.get('window').height;
 
-const AddProtectionModal = ({ isVisible, onClose, onAddRecord }) => {
-  const [name, setName] = useState('');
-  const [lastDate, setLastDate] = useState('');
-  const [nextDate, setNextDate] = useState('');
-  const [selectedPeriod, setSelectedPeriod] = useState('1');
+interface AddProtectionModalProps {
+  isVisible: boolean;
+  onClose: () => void;
+  onAddRecord: (recordData: { type: string; name: string; lastDate: string; nextDate: string }) => Promise<void>;
+}
 
-  const handlePeriodChange = (period) => {
+const AddProtectionModal: React.FC<AddProtectionModalProps> = ({ isVisible, onClose, onAddRecord }) => {
+  const [name, setName] = useState<string>('');
+  const [lastDate, setLastDate] = useState<string>('');
+  const [nextDate, setNextDate] = useState<string>('');
+  const [selectedPeriod, setSelectedPeriod] = useState<string>('1');
+
+  const handlePeriodChange = (period: string) => {
     setSelectedPeriod(period);
 
     if (lastDate && isValidDate(lastDate)) {
@@ -58,7 +64,7 @@ const AddProtectionModal = ({ isVisible, onClose, onAddRecord }) => {
     }
   };
 
-  const isValidDate = (dateString) => {
+  const isValidDate = (dateString: string) => {
     const dateParts = dateString.split('/');
     if (dateParts.length !== 3) return false;
 
@@ -118,7 +124,7 @@ const AddProtectionModal = ({ isVisible, onClose, onAddRecord }) => {
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                marginBottom: 45, 
+                marginBottom: 45,
               }}
             >
               <Text
@@ -174,7 +180,7 @@ const AddProtectionModal = ({ isVisible, onClose, onAddRecord }) => {
             <View style={{ marginBottom: 25 }}>
               <Text style={{ marginBottom: 15 }}>Наступне вживання захисту</Text>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                {[
+                {[ 
                   { period: '1', label: 'За 1 місяць' },
                   { period: '3', label: 'За 3 місяці' },
                   { period: '6', label: 'За 6 місяців' },
