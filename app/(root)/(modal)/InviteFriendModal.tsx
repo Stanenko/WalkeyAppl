@@ -5,9 +5,14 @@ import { icons } from "@/constants/svg";
 
 const SERVER_URL = "http://192.168.0.18:3000";
 
-const InviteFriendModal = ({ isVisible, onClose }) => {
-  const [friendName, setFriendName] = useState("");
-  const [friendEmail, setFriendEmail] = useState("");
+interface InviteFriendModalProps {
+  isVisible: boolean;
+  onClose: () => void;
+}
+
+const InviteFriendModal: React.FC<InviteFriendModalProps> = ({ isVisible, onClose }) => {
+  const [friendName, setFriendName] = useState<string>("");
+  const [friendEmail, setFriendEmail] = useState<string>("");
 
   const handleInvite = async () => {
     if (!friendEmail || !friendName) {
@@ -32,25 +37,21 @@ const InviteFriendModal = ({ isVisible, onClose }) => {
       }
 
       const data = await response.json();
-      if (response.ok) {
-        if (data.exists) {
-          Alert.alert("Упс...", "Здається, ваш друг вже зареєстрований.");
-        } else {
-          await fetch(`${SERVER_URL}/api/send-invite`, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              email: friendEmail,
-              message: `Ваш друг ${friendName} хоче запросити вас доєднатися до додатку Walkey. Ось посилання: https://walkey.com`,
-            }),
-          });
-          Alert.alert("Запрошення надіслано!", `Ваш друг ${friendName} отримав запрошення.`);
-          onClose();
-        }
+      if (data.exists) {
+        Alert.alert("Упс...", "Здається, ваш друг вже зареєстрований.");
       } else {
-        Alert.alert("Помилка", data.message || "Щось пішло не так.");
+        await fetch(`${SERVER_URL}/api/send-invite`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: friendEmail,
+            message: `Ваш друг ${friendName} хоче запросити вас доєднатися до додатку Walkey. Ось посилання: https://walkey.com`,
+          }),
+        });
+        Alert.alert("Запрошення надіслано!", `Ваш друг ${friendName} отримав запрошення.`);
+        onClose();
       }
     } catch (error) {
       console.error("Error sending invite:", error);
@@ -60,28 +61,31 @@ const InviteFriendModal = ({ isVisible, onClose }) => {
 
   return (
     <Modal visible={isVisible} transparent={true} animationType="slide">
-      <SafeAreaView className="flex-1 bg-white p-6">
-        <TouchableOpacity className="absolute top-6 left-6" onPress={onClose}>
-          <icons.ArrowLeft width={24} height={24} className="text-black" />
+      <SafeAreaView style={{ flex: 1, backgroundColor: "white", padding: 24 }}>
+        <TouchableOpacity
+          style={{ position: "absolute", top: 24, left: 24 }}
+          onPress={onClose}
+        >
+          <icons.ArrowLeft width={24} height={24} style={{ color: "black" }} />
         </TouchableOpacity>
 
-        <View className="mt-16">
-          <Text className="text-2xl font-bold text-center mb-6">Запросити друга</Text>
+        <View style={{ marginTop: 64 }}>
+          <Text style={{ fontSize: 24, fontWeight: "bold", textAlign: "center", marginBottom: 24 }}>Запросити друга</Text>
 
-          <View className="mb-4">
-            <Text className="mb-2 text-black text-base">Як звати друга?</Text>
+          <View style={{ marginBottom: 16 }}>
+            <Text style={{ marginBottom: 8, fontSize: 16, color: "black" }}>Як звати друга?</Text>
             <TextInput
-              className="p-4 border rounded-lg border-gray-300"
+              style={{ padding: 16, borderWidth: 1, borderRadius: 8, borderColor: "#ccc" }}
               placeholder="Ім'я друга"
               value={friendName}
               onChangeText={setFriendName}
             />
           </View>
 
-          <View className="mb-4">
-            <Text className="mb-2 text-black text-base">Email друга</Text>
+          <View style={{ marginBottom: 16 }}>
+            <Text style={{ marginBottom: 8, fontSize: 16, color: "black" }}>Email друга</Text>
             <TextInput
-              className="p-4 border rounded-lg border-gray-300"
+              style={{ padding: 16, borderWidth: 1, borderRadius: 8, borderColor: "#ccc" }}
               placeholder="friend@example.com"
               value={friendEmail}
               onChangeText={setFriendEmail}
@@ -89,20 +93,20 @@ const InviteFriendModal = ({ isVisible, onClose }) => {
             />
           </View>
 
-          <View className="bg-orange-100 p-4 rounded-lg mb-6">
-            <Text className="text-orange-600 font-bold text-center">
+          <View style={{ backgroundColor: "#FFE5D1", padding: 16, borderRadius: 8, marginBottom: 24 }}>
+            <Text style={{ color: "#FF6C22", fontWeight: "bold", textAlign: "center" }}>
               Запроси 10 друзів і отримай місяць Premium безкоштовно!
             </Text>
-            <Text className="text-orange-400 text-center text-sm mt-2">
+            <Text style={{ color: "#FF9A55", textAlign: "center", fontSize: 12, marginTop: 8 }}>
               * Безкоштовні місяці сумуються. Тобто, 120 запрошених друзів дають рік безкоштовно.
             </Text>
           </View>
 
           <TouchableOpacity
-            className="bg-orange-500 py-4 rounded-lg"
+            style={{ backgroundColor: "#FF6C22", padding: 16, borderRadius: 8 }}
             onPress={handleInvite}
           >
-            <Text className="text-white text-center font-bold">Запросити</Text>
+            <Text style={{ color: "white", textAlign: "center", fontWeight: "bold" }}>Запросити</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
