@@ -1,18 +1,22 @@
 import React, { useState, useEffect } from "react";
-import { Modal, View, Text, TouchableOpacity, Image, ActivityIndicator } from "react-native";
+import { Modal, View, Text, TouchableOpacity, Image, ActivityIndicator, Alert } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useUser } from "@clerk/clerk-expo";
 import * as ImagePicker from "expo-image-picker";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { icons } from "@/constants/svg"; 
-import { getServerUrl } from "@/utils/getServerUrl";
+import { icons } from "@/constants/svg";
 
 const SERVER_URL = "http://192.168.0.18:3000";
 
-const GeneralModal = ({ isVisible, onClose }) => {
+interface GeneralModalProps {
+  isVisible: boolean;
+  onClose: () => void;
+}
+
+const GeneralModal: React.FC<GeneralModalProps> = ({ isVisible, onClose }) => {
   const { user } = useUser();
-  const [birthDate, setBirthDate] = useState("");
-  const [image, setImage] = useState(null);
+  const [birthDate, setBirthDate] = useState<string>("");
+  const [image, setImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,7 +27,7 @@ const GeneralModal = ({ isVisible, onClose }) => {
         const data = await response.json();
         if (response.ok) {
           setBirthDate(data.birth_date || "");
-          setImage(data.image || "https://via.placeholder.com/150"); 
+          setImage(data.image || "https://via.placeholder.com/150");
         } else {
           console.error("Ошибка сервера:", data.error);
         }
@@ -37,32 +41,30 @@ const GeneralModal = ({ isVisible, onClose }) => {
     fetchUserData();
   }, [user]);
 
-  const updateBirthDate = async (newDate) => {
+  const updateBirthDate = async (newDate: string) => {
     try {
       const response = await fetch(`${SERVER_URL}/api/user`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          "Accept": "application/json",
         },
         body: JSON.stringify({
-          clerkId: user.id,
+          clerkId: user?.id,
           birthDate: newDate,
         }),
       });
-  
+
       if (response.ok) {
         console.log("Дата рождения обновлена!");
         setBirthDate(newDate);
       } else {
-        const errorData = await response.text(); 
+        const errorData = await response.text();
         console.error("Ошибка сервера при обновлении даты рождения:", errorData);
       }
     } catch (error) {
       console.error("Ошибка при обновлении даты рождения:", error);
     }
   };
-  
 
   const selectImage = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -79,30 +81,29 @@ const GeneralModal = ({ isVisible, onClose }) => {
     });
 
     if (!pickerResult.canceled) {
-      const selectedImageUri = pickerResult.assets[0].uri;
-      setImage(selectedImageUri);
-      uploadImageToDB(selectedImageUri);
+      const selectedImageUri = pickerResult.assets?.[0]?.uri;
+      if (selectedImageUri) {
+        setImage(selectedImageUri);
+        uploadImageToDB(selectedImageUri);
+      }
     }
   };
 
-  const uploadImageToDB = async (imageUri) => {
+  const uploadImageToDB = async (imageUri: string) => {
     try {
       const formData = new FormData();
-      formData.append("clerkId", user.id);
+      formData.append("clerkId", user?.id || "");
       formData.append("image", {
         uri: imageUri,
         name: "profile.jpg",
         type: "image/jpeg",
-      });
-  
+      } as unknown as Blob);
+
       const response = await fetch(`${SERVER_URL}/api/user/image`, {
         method: "PATCH",
-        headers: {
-          "Accept": "application/json",
-        },
         body: formData,
       });
-  
+
       if (response.ok) {
         console.log("Фото успешно обновлено!");
       } else {
@@ -113,7 +114,6 @@ const GeneralModal = ({ isVisible, onClose }) => {
       console.error("Ошибка при загрузке фото:", error);
     }
   };
-  
 
   if (loading) {
     return (
@@ -126,23 +126,19 @@ const GeneralModal = ({ isVisible, onClose }) => {
   return (
     <Modal visible={isVisible} transparent={true} animationType="slide">
       <SafeAreaView className="flex-1 bg-white">
-
         <TouchableOpacity
-            style={{ position: "absolute", top: 78, left: 34, zIndex: 10 }}
-            onPress={onClose}
-            >
-            <icons.ArrowLeft width={24} height={24} style={{ color: "#000" }} />
+          style={{ position: "absolute", top: 78, left: 34, zIndex: 10 }}
+          onPress={onClose}
+        >
+          <icons.ArrowLeft width={24} height={24} style={{ color: "#000" }} />
         </TouchableOpacity>
 
-
-     
         <View style={{ padding: 20, marginTop: 90 }}>
           <Text style={{ fontSize: 24, fontWeight: "bold", textAlign: "center", marginBottom: 20 }}>Загальне</Text>
 
-     
           <View className="items-center mt-4">
             <View className="relative">
-              <Image source={{ uri: image }} className="w-24 h-24 rounded-full" />
+              <Image source={{ uri: image || "https://via.placeholder.com/150" }} className="w-24 h-24 rounded-full" />
               <TouchableOpacity
                 onPress={selectImage}
                 style={{
@@ -162,7 +158,6 @@ const GeneralModal = ({ isVisible, onClose }) => {
             <Text className="text-gray-500">мопс</Text>
           </View>
 
-     
           <View className="mt-6">
             <Text className="text-sm font-bold">Дата народження</Text>
             <DateTimePicker
@@ -171,8 +166,9 @@ const GeneralModal = ({ isVisible, onClose }) => {
               display="default"
               onChange={(event, selectedDate) => {
                 const currentDate = selectedDate || new Date(birthDate);
-                setBirthDate(currentDate.toISOString().split("T")[0]);
-                updateBirthDate(currentDate.toISOString().split("T")[0]);
+                const formattedDate = currentDate.toISOString().split("T")[0];
+                setBirthDate(formattedDate);
+                updateBirthDate(formattedDate);
               }}
             />
           </View>
