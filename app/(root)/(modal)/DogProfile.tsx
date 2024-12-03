@@ -1,93 +1,102 @@
 import React from 'react';
-import { View, Text, Image, Modal, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
+import { View, Text, Image, Modal, StyleSheet, TouchableOpacity } from 'react-native';
 import { images } from '@/constants/index';
 import { icons } from '@/constants/svg';
 
-const DogProfileModal = ({ isVisible, onClose, dog }) => {
-    if (!dog) return null;
-  
-    const screenHeight = Dimensions.get('window').height;
-  
-    return (
-      <Modal
-        visible={isVisible}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={onClose}
-      >
-        <View style={styles.container}>
- 
-          <Image 
-            source={dog.image ? { uri: dog.image } : images.OtherDogs} 
-            style={styles.backgroundImage} 
-          />
-  
-          <TouchableOpacity style={styles.backButton} onPress={onClose}>
-            <icons.ArrowLeft width={24} height={24} style={styles.backIcon} />
-          </TouchableOpacity>
-  
-   
-          <View style={styles.infoContainer}>
-            <View style={styles.nameRow}>
-              <Text style={styles.dogName}>{dog.name || 'Ім\'я'}</Text>
-              <Text style={styles.matchPercentage}>
-                {dog.similarity_percentage !== undefined 
-                    ? `${dog.similarity_percentage}% метч` 
-                    : 'Нет данных'}
-                </Text>
+interface Dog {
+  image?: string;
+  name?: string;
+  similarity_percentage?: number;
+  status?: string;
+  gender?: 'male' | 'female';
+  breed?: string;
+  age?: number;
+  walkingPlace?: string;
+}
+
+interface DogProfileModalProps {
+  isVisible: boolean;
+  onClose: () => void;
+  dog: Dog | null;
+}
+
+const DogProfileModal: React.FC<DogProfileModalProps> = ({ isVisible, onClose, dog }) => {
+  if (!dog) return null;
+
+  return (
+    <Modal
+      visible={isVisible}
+      transparent={true}
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <View style={styles.container}>
+        <Image
+          source={dog.image ? { uri: dog.image } : images.OtherDogs}
+          style={styles.backgroundImage}
+        />
+
+        <TouchableOpacity style={styles.backButton} onPress={onClose}>
+          <icons.ArrowLeft width={24} height={24} style={styles.backIcon} />
+        </TouchableOpacity>
+
+        <View style={styles.infoContainer}>
+          <View style={styles.nameRow}>
+            <Text style={styles.dogName}>{dog.name || 'Ім\'я'}</Text>
+            <Text style={styles.matchPercentage}>
+              {dog.similarity_percentage !== undefined
+                ? `${dog.similarity_percentage}% метч`
+                : 'Нет данных'}
+            </Text>
+          </View>
+
+          <View style={styles.statusContainerWrapper}>
+            <Text style={styles.statusLabel}>Статус</Text>
+            <View style={styles.statusContainer}>
+              <icons.HomeIcons width={24} height={24} style={styles.statusIcon} />
+              <Text style={styles.statusText}>{dog.status || 'вдома'}</Text>
             </View>
-  
-            <View style={styles.statusRow}>
-              <Text style={styles.statusLabel}>Статус</Text>
-              <View style={styles.statusContainer}>
-                <icons.HomeIcons width={24} height={24} style={styles.statusIcon} />
-                <Text style={styles.statusText}>{dog.status || 'вдома'}</Text>
-              </View>
-            </View>
-  
-            <View style={styles.rowInfo}>
-              <View style={styles.rowItem}>
-                <Text style={styles.icon}>
-                  {dog.gender === "male" ? "♂️" : "♀️"}
-                </Text>
-                <Text style={styles.rowText}>
-                  {dog.gender === "male" ? "Хлопчик" : "Дівчинка"}
-                </Text>
-              </View>
-              <View style={[styles.rowItem, styles.centerItem]}>
-                <Text style={styles.rowText}>{dog.breed || 'Лабрадор'}</Text>
-              </View>
-              <View style={styles.rowItem}>
-                <Text style={styles.rowText}>
-                  {dog.age ? `${dog.age} місяців` : '5 років 3 місяці'}
-                </Text>
-              </View>
-            </View>
-  
-     
-            <View style={styles.separator} />
-  
-      
-            <View style={styles.walkingRow}>
-              <Text style={styles.walkingTitle}>Зазвичай гуляє:</Text>
-              <Text style={styles.walkingAddress}>
-                {dog.walkingPlace || 'біля вул. Ружинська'}
+          </View>
+
+          <View style={styles.rowInfo}>
+            <View style={styles.rowItem}>
+              <Text style={styles.icon}>
+                {dog.gender === 'male' ? '♂️' : '♀️'}
+              </Text>
+              <Text style={styles.rowText}>
+                {dog.gender === 'male' ? 'Хлопчик' : 'Дівчинка'}
               </Text>
             </View>
-  
-     
-            <TouchableOpacity
-              style={[styles.orangeButton, { marginTop: 10 }]}
-              onPress={() => console.log('Подружитись pressed')}
-            >
-              <Text style={styles.orangeButtonText}>Подружитись</Text>
-            </TouchableOpacity>
+            <View style={[styles.rowItem, styles.centerItem]}>
+              <Text style={styles.rowText}>{dog.breed || 'Лабрадор'}</Text>
+            </View>
+            <View style={styles.rowItem}>
+              <Text style={styles.rowText}>
+                {dog.age ? `${dog.age} місяців` : '5 років 3 місяці'}
+              </Text>
+            </View>
           </View>
+
+          <View style={styles.separator} />
+
+          <View style={styles.walkingRow}>
+            <Text style={styles.walkingTitle}>Зазвичай гуляє:</Text>
+            <Text style={styles.walkingAddress}>
+              {dog.walkingPlace || 'біля вул. Ружинська'}
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            style={[styles.orangeButton, { marginTop: 10 }]}
+            onPress={() => console.log('Подружитись pressed')}
+          >
+            <Text style={styles.orangeButtonText}>Подружитись</Text>
+          </TouchableOpacity>
         </View>
-      </Modal>
-    );
-  };
-  
+      </View>
+    </Modal>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -101,9 +110,9 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: 'absolute',
-    top: 40, 
-    left: 20, 
-    zIndex: 10, 
+    top: 40,
+    left: 20,
+    zIndex: 10,
     padding: 10,
     borderRadius: 30,
   },
@@ -116,7 +125,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 30,
     padding: 20,
     elevation: 5,
-    shadowColor: '#000',
+    boxShadow: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 5,
@@ -141,7 +150,7 @@ const styles = StyleSheet.create({
     color: '#FF6C22',
     textAlign: 'right',
   },
-  statusRow: {
+  statusContainerWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 15,
@@ -151,8 +160,13 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginRight: 10,
   },
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
   statusIcon: {
-    marginRight: 5,
+    marginRight: 8,
     color: '#FF6C22',
   },
   statusText: {
@@ -221,31 +235,6 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: 'bold',
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  statusLabel: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#333',
-    marginRight: 10,
-  },
-  statusContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8, 
-  },
-  statusIcon: {
-    marginRight: 8,
-    color: '#FF6C22',
-  },
-  statusText: {
-    fontSize: 16,
-    color: '#333',
-    fontWeight: '500',
   },
 });
 
