@@ -8,6 +8,7 @@ import {
   Dimensions,
 } from "react-native";
 import { fetchDogBreeds } from "@/lib/fetchBreeds";
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const screenHeight = Dimensions.get("window").height;
 
@@ -53,6 +54,9 @@ const FilterModal: React.FC<FilterModalProps> = ({
 
   const [isBreedFilterOpen, setIsBreedFilterOpen] = useState<boolean>(false);
   const [isAgeFilterOpen, setIsAgeFilterOpen] = useState<boolean>(false);
+  const [excludedBreedQuery, setExcludedBreedQuery] = useState<string>("");
+  const [excludedBreed, setExcludedBreed] = useState<string>("");
+
 
   useEffect(() => {
     const loadBreeds = async () => {
@@ -78,156 +82,168 @@ const FilterModal: React.FC<FilterModalProps> = ({
     setFilteredBreeds([]);
   };
 
+  const handleExcludedBreedSearch = (text: string) => {
+    setExcludedBreedQuery(text);
+    const filtered = breeds.filter((breed) =>
+      breed.toLowerCase().includes(text.toLowerCase())
+    );
+    setFilteredBreeds(filtered);
+  };
+  
+  const handleExcludedBreedSelect = (breed: string) => {
+    setExcludedBreed(breed);
+    handleFilterChange("excludedBreed", breed);
+    setExcludedBreedQuery("");
+    setFilteredBreeds([]);
+  };  
+
   return visible ? (
-    <View className="flex-1">
-      <View
-        className="bg-white p-6"
-        style={{
-          borderTopLeftRadius: 30,
-          borderTopRightRadius: 30,
-          height: screenHeight - 115,
-          justifyContent: "flex-start",
-        }}
+  <SafeAreaView className="flex-1">
+    <View
+      className="bg-white p-6"
+      style={{
+        borderTopLeftRadius: 30,
+        borderTopRightRadius: 30,
+        height: screenHeight - 115,
+        justifyContent: "flex-start",
+      }}
+    >
+      <TouchableOpacity
+        onPress={() => setIsBreedFilterOpen(!isBreedFilterOpen)}
+        className="bg-[#FFE5D8] rounded-xl h-[50px] justify-center items-center mt-4 mb-2"
       >
-        <TouchableOpacity
-          onPress={() => setIsBreedFilterOpen(!isBreedFilterOpen)}
-          className="bg-[#FFE5D8] rounded-xl h-[50px] justify-center items-center mt-4 mb-2"
-        >
-          <Text className="text-black text-center">Порода собак</Text>
-        </TouchableOpacity>
+        <Text className="text-black text-center">Порода собак</Text>
+      </TouchableOpacity>
 
-        {isBreedFilterOpen && (
-          <View>
-            <TextInput
-              value={breedQuery || selectedBreed}
-              onChangeText={handleBreedSearch}
-              placeholder="Почніть вводити породу"
-              className="border border-gray-400 rounded-lg p-2 "
-            />
-            {breedQuery.length > 0 && (
-              <FlatList
-                data={filteredBreeds}
-                keyExtractor={(item, index) => index.toString()}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    onPress={() => handleBreedSelect(item)}
-                    className="p-2 border-b border-gray-200"
-                  >
-                    <Text>{item}</Text>
-                  </TouchableOpacity>
-                )}
-                style={{ maxHeight: 150 }}
-              />
-            )}
-
-<Text className="text-black mt-4 mb-4">Показати всі окрім породи:</Text>
-              <TextInput
-                value={excludedBreedQuery || excludedBreed}
-                onChangeText={handleExcludedBreedSearch}
-                placeholder="Введіть породу для виключення"
-                className="border border-gray-400 rounded-lg p-2 mb-4"
-              />
-              {excludedBreedQuery.length > 0 && (
-                <FlatList
-                  data={filteredBreeds}
-                  keyExtractor={(item, index) => index.toString()}
-                  renderItem={({ item }) => (
-                    <TouchableOpacity
-                      onPress={() => handleExcludedBreedSelect(item)}
-                      className="p-2 border-b border-gray-200"
-                    >
-                      <Text>{item}</Text>
-                    </TouchableOpacity>
-                  )}
-                  style={{ maxHeight: 150 }}
-                />
+      {isBreedFilterOpen && (
+        <View>
+          <TextInput
+            value={breedQuery || selectedBreed}
+            onChangeText={handleBreedSearch}
+            placeholder="Почніть вводити породу"
+            className="border border-gray-400 rounded-lg p-2 "
+          />
+          {breedQuery.length > 0 && (
+            <FlatList
+              data={filteredBreeds}
+              keyExtractor={(item, index) => index.toString()}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  onPress={() => handleBreedSelect(item)}
+                  className="p-2 border-b border-gray-200"
+                >
+                  <Text>{item}</Text>
+                </TouchableOpacity>
               )}
+              style={{ maxHeight: 150 }}
+            />
+          )}
+          <Text className="text-black mt-4 mb-4">Показати всі окрім породи:</Text>
+          <TextInput
+            value={excludedBreedQuery || excludedBreed}
+            onChangeText={handleExcludedBreedSearch}
+            placeholder="Введіть породу для виключення"
+            className="border border-gray-400 rounded-lg p-2 mb-4"
+          />
+          {excludedBreedQuery.length > 0 && (
+            <FlatList
+              data={filteredBreeds}
+              keyExtractor={(item, index) => index.toString()}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  onPress={() => handleExcludedBreedSelect(item)}
+                  className="p-2 border-b border-gray-200"
+                >
+                  <Text>{item}</Text>
+                </TouchableOpacity>
+              )}
+              style={{ maxHeight: 150 }}
+            />
+          )}
+        </View>
+      )}
+
+      <TouchableOpacity
+        onPress={() => setIsAgeFilterOpen(!isAgeFilterOpen)}
+        className="bg-[#FFE5D8] rounded-xl h-[50px] justify-center items-center mt-4 mb-6"
+      >
+        <Text className="text-black text-center">Вік у роках</Text>
+      </TouchableOpacity>
+
+      {isAgeFilterOpen && (
+        <View>
+          <View className="flex-row justify-between items-center mb-6">
+            <Text>Від</Text>
+            <TextInput
+              value={minAge}
+              onChangeText={(text) => {
+                setMinAge(text);
+                handleFilterChange("minAge", text);
+              }}
+              keyboardType="numeric"
+              className="border border-gray-400 rounded-lg p-2 w-24"
+              placeholder="Вік від"
+            />
+            <Text>до</Text>
+            <TextInput
+              value={maxAge}
+              onChangeText={(text) => {
+                setMaxAge(text);
+                handleFilterChange("maxAge", text);
+              }}
+              keyboardType="numeric"
+              className="border border-gray-400 rounded-lg p-2 w-24"
+              placeholder="Вік до"
+            />
           </View>
-        )}
-        <TouchableOpacity
-          onPress={() => setIsAgeFilterOpen(!isAgeFilterOpen)}
-          className="bg-[#FFE5D8] rounded-xl h-[50px] justify-center items-center mt-4 mb-6"
-        >
-          <Text className="text-black text-center">Вік у роках</Text>
-        </TouchableOpacity>
+        </View>
+      )}
 
-        {isAgeFilterOpen && (
-          <View>
-            <View className="flex-row justify-between items-center mb-6">
-              <Text>Від</Text>
-              <TextInput
-                value={minAge}
-                onChangeText={(text) => {
-                  setMinAge(text);
-                  handleFilterChange("minAge", text);
-                }}
-                keyboardType="numeric"
-                className="border border-gray-400 rounded-lg p-2 w-24"
-                placeholder="Вік від"
-              />
-              <Text>до</Text>
-              <TextInput
-                value={maxAge}
-                onChangeText={(text) => {
-                  setMaxAge(text);
-                  handleFilterChange("maxAge", text);
-                }}
-                keyboardType="numeric"
-                className="border border-gray-400 rounded-lg p-2 w-24"
-                placeholder="Вік до"
-              />
-            </View>
-          </View>
-        )}
+      <Text className="text-base mb-2">Рівень активності:</Text>
+      <TextInput
+        value={activityLevel}
+        onChangeText={(text) => handleFilterChange("activityLevel", text)}
+        placeholder="Активність (1-10)"
+        keyboardType="numeric"
+        className="border border-gray-400 rounded-lg p-2"
+      />
 
-        {/* Інші фільтри */}
-        <Text className="text-base mb-2">Рівень активності:</Text>
-        <TextInput
-          value={activityLevel}
-          onChangeText={(text) => handleFilterChange("activityLevel", text)}
-          placeholder="Активність (1-10)"
-          keyboardType="numeric"
-          className="border border-gray-400 rounded-lg p-2"
-        />
+      <Text className="text-base mb-2">Емоційний стан:</Text>
+      <TextInput
+        value={emotionalStatus}
+        onChangeText={(text) => handleFilterChange("emotionalStatus", text)}
+        placeholder="Емоційний стан (1-10)"
+        keyboardType="numeric"
+        className="border border-gray-400 rounded-lg p-2"
+      />
 
-        <Text className="text-base mb-2">Емоційний стан:</Text>
-        <TextInput
-          value={emotionalStatus}
-          onChangeText={(text) => handleFilterChange("emotionalStatus", text)}
-          placeholder="Емоційний стан (1-10)"
-          keyboardType="numeric"
-          className="border border-gray-400 rounded-lg p-2"
-        />
+      <Text className="text-base mb-2">Статус вакцинації:</Text>
+      <TextInput
+        value={vaccinationStatus}
+        onChangeText={(text) => handleFilterChange("vaccinationStatus", text)}
+        placeholder="Вакцинація (повна/часткова)"
+        className="border border-gray-400 rounded-lg p-2 mb-4"
+      />
 
-        <Text className="text-base mb-2">Статус вакцинації:</Text>
-        <TextInput
-          value={vaccinationStatus}
-          onChangeText={(text) => handleFilterChange("vaccinationStatus", text)}
-          placeholder="Вакцинація (повна/часткова)"
-          className="border border-gray-400 rounded-lg p-2 mb-4"
-        />
+      <TouchableOpacity
+        onPress={() => {
+          applyFilters();
+          toggleFilterModal();
+        }}
+        className="bg-[#FF6C22] rounded-full h-[50px] justify-center items-center mt-4"
+      >
+        <Text className="text-white text-center">Застосувати фільтри</Text>
+      </TouchableOpacity>
 
-        {/* Кнопки */}
-        <TouchableOpacity
-          onPress={() => {
-            applyFilters();
-            toggleFilterModal();
-          }}
-          className="bg-[#FF6C22] rounded-full h-[50px] justify-center items-center mt-4"
-        >
-          <Text className="text-white text-center">Застосувати фільтри</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          onPress={toggleFilterModal}
-          className="bg-[#FFE5D8] rounded-full h-[50px] justify-center items-center mt-4"
-        >
-          <Text className="text-black text-center">Закрити</Text>
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
-    </Modal>
-  );
+      <TouchableOpacity
+        onPress={toggleFilterModal}
+        className="bg-[#FFE5D8] rounded-full h-[50px] justify-center items-center mt-4"
+      >
+        <Text className="text-black text-center">Закрити</Text>
+      </TouchableOpacity>
+    </View>
+  </SafeAreaView>
+) : null;
 };
 
 export default FilterModal;
