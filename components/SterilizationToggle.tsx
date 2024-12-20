@@ -1,10 +1,23 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
-const SterilizationToggle = ({ isSterilized, setIsSterilized, gender, isInHeat, setIsInHeat }) => {
+interface SterilizationToggleProps {
+  isSterilized: boolean;
+  setIsSterilized: (value: boolean) => void;
+  gender: 'male' | 'female';
+  isInHeat?: boolean;
+  setIsInHeat?: (value: boolean) => void;
+}
+
+const SterilizationToggle: React.FC<SterilizationToggleProps> = ({
+  isSterilized,
+  setIsSterilized,
+  gender,
+  isInHeat,
+  setIsInHeat,
+}) => {
   return (
     <View>
-   
       <View style={styles.row}>
         <Text style={styles.label}>Кастрація / стерилізація</Text>
         <View style={styles.toggleContainer}>
@@ -33,7 +46,6 @@ const SterilizationToggle = ({ isSterilized, setIsSterilized, gender, isInHeat, 
         </View>
       </View>
 
-     
       {gender === 'female' && (
         <View style={styles.row}>
           <Text style={styles.label}>Течка зараз</Text>
@@ -43,7 +55,7 @@ const SterilizationToggle = ({ isSterilized, setIsSterilized, gender, isInHeat, 
                 styles.toggleButton,
                 isInHeat ? styles.activeButton : styles.inactiveButton,
               ]}
-              onPress={() => setIsInHeat(true)}
+              onPress={() => setIsInHeat && setIsInHeat(true)}
             >
               <Text style={[styles.toggleText, isInHeat ? styles.activeText : styles.inactiveText]}>
                 Так
@@ -54,7 +66,7 @@ const SterilizationToggle = ({ isSterilized, setIsSterilized, gender, isInHeat, 
                 styles.toggleButton,
                 !isInHeat ? styles.activeButton : styles.inactiveButton,
               ]}
-              onPress={() => setIsInHeat(false)}
+              onPress={() => setIsInHeat && setIsInHeat(false)}
             >
               <Text style={[styles.toggleText, !isInHeat ? styles.activeText : styles.inactiveText]}>
                 Ні
@@ -73,7 +85,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 10, 
+    marginVertical: 10,
   },
   label: {
     fontSize: 16,
@@ -86,8 +98,8 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#ddd',
-    width: 182, 
-    height: 38, 
+    width: 182,
+    height: 38,
   },
   toggleButton: {
     flex: 1,
@@ -98,15 +110,15 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF6C22',
   },
   inactiveButton: {
-    backgroundColor: '#f9f9f9', 
+    backgroundColor: '#f9f9f9',
   },
   toggleText: {
     fontWeight: '500',
   },
   activeText: {
-    color: '#fff', 
+    color: '#fff',
   },
   inactiveText: {
-    color: '#aaa', 
+    color: '#aaa',
   },
 });

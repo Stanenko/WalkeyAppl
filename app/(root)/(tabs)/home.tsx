@@ -14,7 +14,7 @@ import * as Clipboard from 'expo-clipboard';
 
 
 
-const SERVER_URL = "http://192.168.0.18:3000";
+const SERVER_URL = "http://192.168.0.134:3000";
 
 const fetchDataFromAPI = async (url: string, errorMessage: string): Promise<any> => {
   try {
@@ -285,7 +285,7 @@ const SliderComponent: React.FC<SliderComponentProps> = ({ clerkId }) => {
         }
 
         if (protectionData.length > 0) {
-          const nearestProtection = protectionData.reduce((prev, curr) => {
+          const nearestProtection = protectionData.reduce((z, curr) => {
             const prevDate = new Date(prev.nextdate);
             const currDate = new Date(curr.nextdate);
             return currDate < prevDate ? curr : prev;

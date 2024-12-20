@@ -3,7 +3,7 @@ import { Modal, TextInput, Text, TouchableOpacity, View, Alert } from "react-nat
 import { SafeAreaView } from "react-native-safe-area-context";
 import { icons } from "@/constants/svg";
 
-const SERVER_URL = "http://192.168.0.18:3000";
+const SERVER_URL = "http://192.168.0.134:3000";
 
 interface InviteFriendModalProps {
   isVisible: boolean;

@@ -8,7 +8,10 @@ interface InputFieldProps {
   value: string;
   onChangeText: (value: string) => void;
   secureTextEntry?: boolean;
-  textContentType?: "none" | "URL" | "addressCity" | "addressCityAndState" | "addressState" | "countryName" | "creditCardNumber" | "emailAddress" | "familyName" | "fullStreetAddress" | "givenName" | "jobTitle" | "location" | "middleName" | "name" | "namePrefix" | "nameSuffix" | "nickname" | "organizationName" | "postalCode" | "streetAddressLine1" | "streetAddressLine2" | "sublocality" | "telephoneNumber" | "username" | "password";
+  textContentType?: TextInput["props"]["textContentType"];
+  keyboardType?: TextInput["props"]["keyboardType"];
+  autoCapitalize?: TextInput["props"]["autoCapitalize"];
+  autoComplete?: TextInput["props"]["autoComplete"];
   labelStyle?: string;
   containerStyle?: string;
   inputStyle?: string;
@@ -23,6 +26,9 @@ const InputField: React.FC<InputFieldProps> = ({
   onChangeText,
   secureTextEntry = false,
   textContentType,
+  keyboardType,
+  autoCapitalize,
+  autoComplete,
   labelStyle,
   containerStyle,
   inputStyle,
@@ -30,27 +36,19 @@ const InputField: React.FC<InputFieldProps> = ({
 }) => {
   const [isFocused, setIsFocused] = useState(false);
 
-  const containerBorderStyle = isFocused
-  ? "border-black border-2"
-  : "border-neutral-100";
-
-
   return (
     <KeyboardAvoidingView behavior="padding">
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View className="my-2 w-full">
-          {/* Label */}
           <Text className={`text-lg font-JakartaSemiBold mb-3 ${labelStyle}`}>
             {label}
           </Text>
 
-          {/* Input container */}
           <View
             className={`flex flex-row items-center relative bg-neutral-100 rounded-md border ${
               isFocused ? "border-black border-2" : "border-neutral-100"
             } ${containerStyle}`}
           >
-            {/* Icon */}
             {icon && (
               <Image
                 source={typeof icon === "number" ? icon : undefined}
@@ -58,16 +56,16 @@ const InputField: React.FC<InputFieldProps> = ({
                 className={`w-6 h-6 ml-4 ${iconStyle}`}
               />
             )}
-            {/* Text Input */}
             <TextInput
               className={`rounded-md p-4 font-JakartaSemiBold text-[15px] flex-1 ${inputStyle} text-left`}
               placeholder={placeholder}
               value={value}
               onChangeText={onChangeText}
               secureTextEntry={secureTextEntry}
-              textContentType="emailAddress"
-              autoComplete="email" 
+              autoComplete={autoComplete}
               textContentType={textContentType}
+              keyboardType={keyboardType}
+              autoCapitalize={autoCapitalize}
               onFocus={() => setIsFocused(true)}
               onBlur={() => setIsFocused(false)}
               selectionColor="black"

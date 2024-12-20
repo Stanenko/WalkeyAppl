@@ -15,7 +15,7 @@ type MedicalRecord = {
   type: 'vaccination' | 'protection';
 };
 
-const SERVER_URL = 'http://192.168.0.18:3000';
+const SERVER_URL = 'http://192.168.0.134:3000';
 
 const Doctor = () => {
   const [isSterilized, setIsSterilized] = useState(true);

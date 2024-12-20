@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Text, ScrollView, View, TouchableOpacity, Alert, KeyboardAvoidingView, Platform, Image, StyleSheet } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { icons } from "@/constants/svg";
+import { icons as indexIcons } from "@/constants/index";
 import { useRouter } from "expo-router";
 import { useSignUp } from "@clerk/clerk-expo";
 import InputField from "@/components/InputField";
@@ -15,7 +16,7 @@ import { getServerUrl } from "@/utils/getServerUrl";
 import { useRef } from "react";
 
 
-const SERVER_URL = "http://192.168.0.18:3000";
+const SERVER_URL = "http://192.168.0.134:3000";
 
 
 
@@ -79,7 +80,10 @@ const SignUp = () => {
 
 
     const onSignUpPress = async () => {
-        if (!isLoaded) return;
+        if (!isLoaded || !signUp) {
+            Alert.alert("Помилка", "Не вдалося ініціалізувати реєстрацію.");
+            return;
+          }          
 
         if (!form.email || !form.password) {
             Alert.alert("Помилка", "Будь ласка, введіть емейл та пароль.");
@@ -112,7 +116,10 @@ const SignUp = () => {
     };
 
     const onPressVerify = async () => {
-        if (!isLoaded) return;
+        if (!isLoaded || !signUp) {
+            Alert.alert("Помилка", "Не вдалося ініціалізувати реєстрацію.");
+            return;
+          }          
 
         if (!verification.code.trim()) {
             Alert.alert("Помилка", "Будь ласка, введіть код підтвердження.");
@@ -344,17 +351,17 @@ const SignUp = () => {
         }
     };
 
-    const [breeds, setBreeds] = useState([]); 
+    const [breeds, setBreeds] = useState<{ label: string; value: string }[]>([]);
     const [openBreedPicker, setOpenBreedPicker] = useState(false);
 
 
     useEffect(() => {
         const fetchBreedsData = async () => {
             const fetchedBreeds = await fetchDogBreeds();
-            setBreeds(fetchedBreeds.map((breed) => ({ label: breed, value: breed }))); 
+            setBreeds(fetchedBreeds.map((breed: string) => ({ label: breed, value: breed })));
         };
         fetchBreedsData();
-    }, []); 
+    }, []);    
 
     useEffect(() => {
         if (form.email) {
@@ -387,7 +394,7 @@ const SignUp = () => {
                 }}
                 className="absolute w-[36px] h-[64px] top-[68px] left-[45px] z-10"
             >
-                <icons.ArrowLeft />
+                <icons.ArrowLeft width={36} height={64}/>
             </TouchableOpacity>
                   
 
@@ -461,7 +468,7 @@ const SignUp = () => {
                     <View className="flex-1 bg-white">
                         <View className="relative w-full h-[250px]">
                             <View className="absolute top-[129px] left-0 right-0 flex justify-center items-center">
-                                <icons.LogoIcon />
+                                <icons.LogoIcon width={133} height={41}/>
                             </View>
                         </View>
                         <View className="absolute top-[235px] left-0 right-0 flex justify-center items-center">
@@ -505,7 +512,7 @@ const SignUp = () => {
                         <InputField
                             label="Мого песика звати..."
                             placeholder="Байт"
-                            icon={icons.person}
+                            icon={indexIcons.person}
                             value={form.name}
                             onChangeText={(value: string) => setForm({ ...form, name: value })}
                         />
@@ -688,7 +695,7 @@ const SignUp = () => {
                     <Text className="text-white text-lg font-JakartaSemiBold">Продовжити</Text>
                     <View className="absolute right-[20px]">
                     <icons.ArrowRight
-                        className="text-white" 
+                        style={{ color: "white" }} 
                         width={20} 
                         height={20}
                     />
@@ -703,7 +710,7 @@ const SignUp = () => {
                     <Text className="text-white text-lg font-JakartaSemiBold">Продовжити</Text>
                     <View className="absolute right-[20px]">
                     <icons.ArrowRight
-                        className="text-white" 
+                        style={{ color: "white" }}
                         width={20} 
                         height={20}
                     />
@@ -718,7 +725,7 @@ const SignUp = () => {
                     <Text className="text-white text-lg font-JakartaSemiBold">Продовжити</Text>
                     <View className="absolute right-[20px]">
                     <icons.ArrowRight
-                        className="text-white" 
+                        style={{ color: "white" }} 
                         width={20} 
                         height={20}
                     />
@@ -733,7 +740,7 @@ const SignUp = () => {
                     <Text className="text-white text-lg font-JakartaSemiBold">Продовжити</Text>
                     <View className="absolute right-[20px]">
                     <icons.ArrowRight
-                        className="text-white" 
+                        style={{ color: "white" }}
                         width={20} 
                         height={20}
                     />
@@ -748,7 +755,7 @@ const SignUp = () => {
                 <Text className="text-white text-lg font-JakartaSemiBold">Продовжити</Text>
                 <View className="absolute right-[20px]">
                 <icons.ArrowRight
-                    className="text-white" 
+                    style={{ color: "white" }} 
                     width={20} 
                     height={20}
                 />
@@ -763,7 +770,7 @@ const SignUp = () => {
                 <Text className="text-white text-lg font-JakartaSemiBold">Продовжити</Text>
                 <View className="absolute right-[20px]">
                 <icons.ArrowRight
-                    className="text-white" 
+                    style={{ color: "white" }} 
                     width={20} 
                     height={20}
                 />
@@ -783,7 +790,7 @@ const SignUp = () => {
                 >
                     <Text className="text-white text-lg font-JakartaSemiBold">Продовжити</Text>
                     <View className="absolute right-[20px]">
-                        <icons.ArrowRight className="text-white" width={20} height={20} />
+                        <icons.ArrowRight style={{ color: "white" }} width={20} height={20} />
                     </View>
                 </TouchableOpacity>
             )}
@@ -795,7 +802,7 @@ const SignUp = () => {
                 <Text className="text-white text-lg font-JakartaSemiBold">Продовжити</Text>
                 <View className="absolute right-[20px]">
                 <icons.ArrowRight
-                    className="text-white" 
+                    style={{ color: "white" }} 
                     width={20} 
                     height={20}
                 />
@@ -810,7 +817,7 @@ const SignUp = () => {
                     <Text className="text-white text-lg font-JakartaSemiBold">Надіслати</Text>
                     <View className="absolute right-[20px]">
                     <icons.ArrowRight
-                        className="text-white" 
+                        style={{ color: "white" }}
                         width={20} 
                         height={20}
                     />
