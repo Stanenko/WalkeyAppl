@@ -8,7 +8,7 @@ import PermissionsModal from "@/app/(root)/(modal)/PermissionsModal";
 import NotificationsModal from "@/app/(root)/(modal)/NotificationsModal";
 import InviteFriendModal from "@/app/(root)/(modal)/InviteFriendModal";
 
-const SERVER_URL = "http://192.168.0.134:3000";
+const SERVER_URL = "https://7193-93-200-239-96.ngrok-free.app";
 
 
 interface ProfileItem {

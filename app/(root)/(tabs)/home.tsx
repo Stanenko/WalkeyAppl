@@ -10,11 +10,12 @@ import DogProfileModal from "@/app/(root)/(modal)/DogProfile";
 import { Dog, match_dogs, calculate_geographic_distance } from "@/dogMatching";
 import { getServerUrl } from "@/utils/getServerUrl";
 import HomeNotificationModal from "@/app/(root)/(modal)/HomeNotificationModal";
+import CreateWalkModal from "@/app/(root)/(modal)/CreateWalkModal";
 import * as Clipboard from 'expo-clipboard';
 
 
 
-const SERVER_URL = "http://192.168.0.134:3000";
+const SERVER_URL = "https://7193-93-200-239-96.ngrok-free.app";
 
 const fetchDataFromAPI = async (url: string, errorMessage: string): Promise<any> => {
   try {
@@ -124,6 +125,23 @@ interface DogListProps {
 }
 
 const DogList: React.FC<DogListProps> = ({ dogs, onDogSelect }) => {
+  const navigation = useNavigation();
+
+  if (dogs.length === 0) {
+    return (
+      <View style={{ marginTop: 50 }} className="flex items-center justify-center">
+        <TouchableOpacity onPress={() => navigation.navigate('map' as never)}>
+          <Text className="text-gray-500 font-bold text-center mb-2">
+            Поки що поряд з вами ніхто не гуляє
+          </Text>
+          <Text className="text-[#FF6C22] font-bold text-center">
+            Подивитися на мапі
+          </Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }  
+
   return (
     <ScrollView horizontal className="mt-3" showsHorizontalScrollIndicator={false}>
       {dogs.map((dog: DogInterface, index: number) => (
@@ -395,6 +413,7 @@ const Home = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [notification, setNotification] = useState({ isVisible: false, message: '' });
   const [fadeAnim] = useState(new Animated.Value(0));
+  const [isWalkModalVisible, setWalkModalVisible] = useState(false);
 
   useEffect(() => {
     console.log("Clerk ID:", user?.id);
@@ -508,24 +527,23 @@ const Home = () => {
   useEffect(() => {
     const fetchDogsNearby = async () => {
       if (!user || !user.id) return;
-
+    
       console.log("Fetching dogs nearby...");
       const startTime = Date.now();
-
+    
       try {
-
         const userResponse = await fetch(`${SERVER_URL}/api/user?clerkId=${user.id}`);
         console.log("Response status for user data:", userResponse.status);
-
+    
         if (!userResponse.ok) {
           const errorData = await userResponse.json();
           console.error("Error fetching user data:", errorData.error);
           return;
         }
-
+    
         const userData = await userResponse.json();
         console.log("User data response:", userData);
-
+    
         const myDog = new Dog(
           user.id,
           userData.breed || "unknown",
@@ -540,43 +558,58 @@ const Home = () => {
           userData.vaccination_status || {},
           userData.anti_tick !== undefined ? userData.anti_tick : true
         );
-
+    
         console.log("MyDog object:", myDog);
-
+    
         const dogsResponse = await fetch(`${SERVER_URL}/api/users/locations?clerkId=${user.id}`);
         console.log("Response status for nearby dogs:", dogsResponse.status);
-
+    
         if (!dogsResponse.ok) {
           const errorDogsData = await dogsResponse.json();
           console.error("Error fetching nearby dogs:", errorDogsData.error);
           return;
         }
-
+    
         const dogsData = await dogsResponse.json();
         console.log("Nearby dogs data response:", dogsData);
-
+    
         const allDogs = dogsData.map((dog: any, index: number) => ({
           ...dog,
           dog_id: dog.dog_id || `generated_${index}`,
           latitude: parseFloat(dog.latitude),
           longitude: parseFloat(dog.longitude),
           similarity_percentage: 0,
-        }));        
-
+        }));
+    
         console.log("All dogs:", allDogs);
+    
+        const filteredDogs = allDogs.filter((dog: DogInterface) => {
+          const distance = calculate_geographic_distance(
+            { lat: myDog.latitude, lng: myDog.longitude },
+            { lat: dog.latitude, lng: dog.longitude }
+          );          
+          return distance <= 4000;
+        });
+        
+        if (filteredDogs.length === 0) {
+          console.log("Поки що поряд з вами ніхто не гуляє");
+          setDogs([]);
+          return;
+        }
 
-        const matchedDogs = match_dogs(myDog, allDogs, 500);
+        console.log("Dogs within 4 km:", filteredDogs);
+    
+        const matchedDogs = match_dogs(myDog, filteredDogs, 500);
         console.log("Matched dogs:", matchedDogs);
-
+    
         setDogs(matchedDogs);
         console.log("Final matched dogs in state:", matchedDogs);
-
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
         console.log("Time for fetchDogsNearby:", Date.now() - startTime, "ms");
       }
-    };
+    };    
 
     fetchDogsNearby();
   }, [user]);
@@ -810,14 +843,17 @@ const Home = () => {
 
           <TouchableOpacity
             className="bg-[#FFE5D8] py-3 p-4 rounded-full mt-3"
-            onPress={() => {
-              console.log("Створити прогулянку натиснута");
-            }}
+            onPress={() => setWalkModalVisible(true)} 
           >
             <Text className="text-center font-bold">
               {isToggled ? "Покликати нових друзів" : "Створити прогулянку"}
             </Text>
           </TouchableOpacity>
+
+          <CreateWalkModal
+            isVisible={isWalkModalVisible}
+            onClose={() => setWalkModalVisible(false)} 
+          />
         </View>;
 
 

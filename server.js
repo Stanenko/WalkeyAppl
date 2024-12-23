@@ -27,7 +27,6 @@ const storage = multer.diskStorage({
   },
 });
 
- // Генерация случайного 16-значного кода
 const generateUniqueCode = async () => {
   let isUnique = false;
   let code = '';
@@ -445,6 +444,83 @@ app.get("/api/db-check", async (req, res) => {
     res.status(200).json({ message: "DB connection successful!", time: result[0].current_time });
   } catch (error) {
     res.status(500).json({ message: "DB connection failed", error });
+  }
+});
+
+app.post('/api/walks', async (req, res) => {
+  const { clerkId, date, time, latitude, longitude } = req.body;
+
+  if (!clerkId || !date || !time || !latitude || !longitude) {
+      return res.status(400).json({ error: 'Все поля обязательны' });
+  }
+
+  try {
+      const newWalk = await sql`
+          INSERT INTO walks (clerk_id, date, time, location_latitude, location_longitude)
+          VALUES (${clerkId}, ${date}, ${time}, ${latitude}, ${longitude})
+          RETURNING *;
+      `;
+      res.status(201).json(newWalk[0]);
+  } catch (error) {
+      console.error('Ошибка при создании прогулки:', error);
+      res.status(500).json({ error: 'Внутренняя ошибка сервера', details: error.message });
+  }
+});
+
+app.get('/api/walks', async (req, res) => {
+  const { clerkId } = req.query;
+
+  if (!clerkId) {
+    return res.status(400).json({ error: 'clerkId обязателен' });
+  }
+
+  try {
+    const walks = await sql`
+      SELECT *
+      FROM walks
+      WHERE clerk_id = ${clerkId}
+      ORDER BY date ASC, time ASC;
+    `;
+
+    if (walks.length === 0) {
+      return res.status(404).json({ error: 'Прогулки не найдены' });
+    }
+
+    res.status(200).json(walks);
+  } catch (error) {
+    console.error('Ошибка при получении прогулок:', error);
+    res.status(500).json({ error: 'Внутренняя ошибка сервера' });
+  }
+});
+
+app.delete('/api/walks/:id', async (req, res) => {
+  const { id } = req.params;
+  const { clerkId } = req.query;
+
+  if (!id || !clerkId) {
+    return res.status(400).json({ error: 'Идентификатор прогулки и clerkId обязательны' });
+  }
+
+  try {
+    const walk = await sql`
+      SELECT * FROM walks
+      WHERE id = ${id} AND clerk_id = ${clerkId};
+    `;
+
+    if (walk.length === 0) {
+      return res.status(404).json({ error: 'Прогулка не найдена или принадлежит другому пользователю' });
+    }
+
+    const result = await sql`
+      DELETE FROM walks
+      WHERE id = ${id} AND clerk_id = ${clerkId}
+      RETURNING *;
+    `;
+
+    res.status(200).json({ success: true, data: result[0] });
+  } catch (error) {
+    console.error('Ошибка при удалении прогулки:', error);
+    res.status(500).json({ error: 'Внутренняя ошибка сервера', details: error.message });
   }
 });
   

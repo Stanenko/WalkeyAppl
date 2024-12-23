@@ -6,7 +6,7 @@ import * as ImagePicker from "expo-image-picker";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { icons } from "@/constants/svg";
 
-const SERVER_URL = "http://192.168.0.134:3000";
+const SERVER_URL = "https://7193-93-200-239-96.ngrok-free.app";
 
 interface GeneralModalProps {
   isVisible: boolean;

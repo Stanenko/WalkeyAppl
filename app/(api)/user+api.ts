@@ -29,14 +29,12 @@ export async function POST(request: Request) {
       );
     }
 
-    // Вставка данных в таблицу `users`
     await sql`
       INSERT INTO users (name, email, clerk_id, gender, birth_date, image)
       VALUES (${name}, ${email}, ${clerkId}, ${gender}, ${birthDate}, ${image || null})
       ON CONFLICT (clerk_id) DO NOTHING;
     `;
 
-    // Вставка данных в таблицу `dogs`
     const response = await sql`
       INSERT INTO dogs (clerk_id, breed, activity_level)
       VALUES (${clerkId}, ${breed}, ${activityLevel})
