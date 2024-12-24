@@ -16,7 +16,7 @@ import { getServerUrl } from "@/utils/getServerUrl";
 import { useRef } from "react";
 
 
-const SERVER_URL = "https://7193-93-200-239-96.ngrok-free.app";
+const SERVER_URL = "https://ce95-93-200-239-96.ngrok-free.app";
 
 
 

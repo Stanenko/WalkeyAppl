@@ -15,7 +15,7 @@ type MedicalRecord = {
   type: 'vaccination' | 'protection';
 };
 
-const SERVER_URL = "https://7193-93-200-239-96.ngrok-free.app";
+const SERVER_URL = "https://ce95-93-200-239-96.ngrok-free.app";
 
 const Doctor = () => {
   const [isSterilized, setIsSterilized] = useState(true);
@@ -46,18 +46,22 @@ const Doctor = () => {
     try {
       const response = await fetch(`${SERVER_URL}/api/medical/records?type=${type}&clerkId=${clerkId}`);
       if (!response.ok) throw new Error(`Failed to fetch ${type} records`);
-
+  
       const rawData: Array<{ id: number; name: string; lastdate: string; nextdate: string; type: string }> =
         await response.json();
-
+  
+      console.log(`${type.toUpperCase()} raw data:`, rawData); // Вывод данных из API
+  
       const formattedData = rawData.map(record => ({
         id: record.id,
         name: record.name || 'Unknown',
-        lastDate: record.lastdate || null,
-        nextDate: record.nextdate || null,
+        lastDate: record.lastdate ? new Date(record.lastdate).toISOString() : null,
+        nextDate: record.nextdate ? new Date(record.nextdate).toISOString() : null,
         type: record.type as 'vaccination' | 'protection',
       }));
-
+  
+      console.log(`${type.toUpperCase()} formatted data:`, formattedData); // Вывод отформатированных данных
+  
       setData(formattedData);
     } catch (error) {
       console.error(`Error fetching ${type} records:`, error);

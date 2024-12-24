@@ -1,9 +1,17 @@
-import React, { useState } from 'react';
-import { Modal, View, Text, Switch, TouchableOpacity, StyleSheet, Alert, Linking } from 'react-native';
-import * as Location from 'expo-location'; 
-import { Camera } from 'expo-camera'; 
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { icons } from '@/constants/svg'; 
+import React, { useState } from "react";
+import {
+  Modal,
+  View,
+  Text,
+  Switch,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  Linking,
+} from "react-native";
+import * as Location from "expo-location";
+import { Camera } from "expo-camera";
+import { icons } from "@/constants/svg";
 
 interface PermissionsModalProps {
   isVisible: boolean;
@@ -18,27 +26,27 @@ const PermissionsModal: React.FC<PermissionsModalProps> = ({ isVisible, onClose 
     try {
       if (value) {
         const { status } = await Location.requestForegroundPermissionsAsync();
-        if (status === 'granted') {
+        if (status === "granted") {
           setLocationPermission(true);
-          Alert.alert('Локація', 'Доступ до локації надано.');
+          Alert.alert("Локація", "Доступ до локації надано.");
         } else {
           setLocationPermission(false);
-          Alert.alert('Локація', 'Доступ до локації відхилено.');
+          Alert.alert("Локація", "Доступ до локації відхилено.");
         }
       } else {
         setLocationPermission(false);
         Alert.alert(
-          'Локація',
-          'Щоб відключити дозвіл на місцезнаходження, перейдіть до налаштувань пристрою вручну.',
+          "Локація",
+          "Щоб відключити дозвіл на місцезнаходження, перейдіть до налаштувань пристрою вручну.",
           [
-            { text: 'Відкрити налаштування', onPress: () => Linking.openSettings() },
-            { text: 'Скасувати', style: 'cancel' },
+            { text: "Відкрити налаштування", onPress: () => Linking.openSettings() },
+            { text: "Скасувати", style: "cancel" },
           ]
         );
       }
     } catch (error) {
-      Alert.alert('Помилка', 'Не вдалося опрацювати дозвіл до локації.');
-      console.error('Location permission error:', error);
+      Alert.alert("Помилка", "Не вдалося опрацювати дозвіл до локації.");
+      console.error("Location permission error:", error);
     }
   };
 
@@ -46,103 +54,123 @@ const PermissionsModal: React.FC<PermissionsModalProps> = ({ isVisible, onClose 
     try {
       if (value) {
         const { status } = await Camera.requestCameraPermissionsAsync();
-        if (status === 'granted') {
+        if (status === "granted") {
           setCameraPermission(true);
-          Alert.alert('Камера', 'Доступ до камери надано.');
+          Alert.alert("Камера", "Доступ до камери надано.");
         } else {
           setCameraPermission(false);
-          Alert.alert('Камера', 'Доступ до камери відхилено.');
+          Alert.alert("Камера", "Доступ до камери відхилено.");
         }
       } else {
         setCameraPermission(false);
         Alert.alert(
-          'Камера',
-          'Щоб відключити дозвіл на використання камери, перейдіть до налаштувань пристрою вручну.',
+          "Камера",
+          "Щоб відключити дозвіл на використання камери, перейдіть до налаштувань пристрою вручну.",
           [
-            { text: 'Відкрити налаштування', onPress: () => Linking.openSettings() },
-            { text: 'Скасувати', style: 'cancel' },
+            { text: "Відкрити налаштування", onPress: () => Linking.openSettings() },
+            { text: "Скасувати", style: "cancel" },
           ]
         );
       }
     } catch (error) {
-      Alert.alert('Помилка', 'Не вдалося опрацювати дозвіл на використання камери.');
-      console.error('Camera permission error:', error);
+      Alert.alert("Помилка", "Не вдалося опрацювати дозвіл на використання камери.");
+      console.error("Camera permission error:", error);
     }
   };
 
   return (
     <Modal visible={isVisible} transparent={true} animationType="slide">
-      <SafeAreaView style={styles.container}>
-        <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-          <icons.ArrowLeft width={24} height={24} style={{ color: '#000' }} />
-        </TouchableOpacity>
-
-        <View style={styles.content}>
-          <Text style={styles.title}>Дозволи</Text>
-
-          <View style={styles.permissionItem}>
-            <Text style={styles.permissionLabel}>
-              Дозволити відслідковувати місцезнаходження для пропозицій прогулянок та сповіщень про друзів поблизу.
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: "rgba(0, 0, 0, 0.5)",
+        }}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "white",
+            paddingHorizontal: 20,
+          }}
+        >
+          {/* Шапка */}
+          <View
+            style={{
+              position: "relative",
+              marginTop: 75, // Отступ сверху для шапки
+              height: 50,
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <TouchableOpacity
+              style={{
+                position: "absolute",
+                left: 30,
+              }}
+              onPress={onClose}
+            >
+              <icons.ArrowLeft width={24} height={24} style={{ color: "#000" }} />
+            </TouchableOpacity>
+            <Text
+              style={{
+                fontSize: 22,
+                fontWeight: "bold",
+                textAlign: "center",
+              }}
+            >
+              Дозволи
             </Text>
-            <Switch
-              value={locationPermission}
-              onValueChange={handleLocationPermission}
-              trackColor={{ false: '#767577', true: '#FF6C22' }}
-              thumbColor={locationPermission ? '#FF6C22' : '#f4f3f4'}
-            />
           </View>
 
-          <View style={styles.permissionItem}>
-            <Text style={styles.permissionLabel}>
-              Дозволити доступ до камери для відстеження емоційного стану песика.
-            </Text>
-            <Switch
-              value={cameraPermission}
-              onValueChange={handleCameraPermission}
-              trackColor={{ false: '#767577', true: '#FF6C22' }}
-              thumbColor={cameraPermission ? '#FF6C22' : '#f4f3f4'}
-            />
+          <View style={[styles.content, { marginTop: 30 }]}>
+            <View style={styles.permissionItem}>
+              <Text style={styles.permissionLabel}>
+                Дозволити відслідковувати місцезнаходження для пропозицій прогулянок та сповіщень про друзів поблизу.
+              </Text>
+              <Switch
+                value={locationPermission}
+                onValueChange={handleLocationPermission}
+                trackColor={{ false: "#767577", true: "#FF6C22" }}
+                thumbColor={locationPermission ? "#FF6C22" : "#f4f3f4"}
+              />
+            </View>
+
+            <View style={styles.permissionItem}>
+              <Text style={styles.permissionLabel}>
+                Дозволити доступ до камери для відстеження емоційного стану песика.
+              </Text>
+              <Switch
+                value={cameraPermission}
+                onValueChange={handleCameraPermission}
+                trackColor={{ false: "#767577", true: "#FF6C22" }}
+                thumbColor={cameraPermission ? "#FF6C22" : "#f4f3f4"}
+              />
+            </View>
           </View>
         </View>
-      </SafeAreaView>
+      </View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: 'white',
-  },
-  closeButton: {
-    position: 'absolute',
-    top: 78,
-    left: 34,
-    zIndex: 10,
-  },
   content: {
     padding: 20,
-    marginTop: 60,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 20,
   },
   permissionItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 20,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#FFCDB4',
+    borderBottomColor: "#FFCDB4",
   },
   permissionLabel: {
     flex: 1,
     fontSize: 14,
-    color: '#000',
+    color: "#000",
     marginRight: 10,
   },
 });

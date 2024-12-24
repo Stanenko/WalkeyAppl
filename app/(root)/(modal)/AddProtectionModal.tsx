@@ -35,7 +35,7 @@ const AddProtectionModal: React.FC<AddProtectionModalProps> = ({ isVisible, onCl
       const lastDateObj = new Date(year, month - 1, day);
 
       if (isNaN(lastDateObj.getTime())) {
-        console.error('Некорректная дата:', lastDate);
+        console.error('Некоректна дата:', lastDate);
         return;
       }
 
@@ -60,7 +60,7 @@ const AddProtectionModal: React.FC<AddProtectionModalProps> = ({ isVisible, onCl
 
       setNextDate(nextDateObj.toISOString().split('T')[0]);
     } else {
-      console.error('Дата не задана или некорректна:', lastDate);
+      console.error('Дата не задана або некоректна:', lastDate);
     }
   };
 
@@ -95,7 +95,7 @@ const AddProtectionModal: React.FC<AddProtectionModalProps> = ({ isVisible, onCl
       setNextDate('');
       setSelectedPeriod('1');
     } catch (error) {
-      console.error('Error in handleAddRecord:', error);
+      console.error('Помилка у handleAddRecord:', error);
       Alert.alert('Помилка', 'Не вдалося додати запис');
     }
   };

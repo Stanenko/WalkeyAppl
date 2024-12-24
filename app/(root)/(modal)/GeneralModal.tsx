@@ -1,12 +1,20 @@
 import React, { useState, useEffect } from "react";
-import { Modal, View, Text, TouchableOpacity, Image, ActivityIndicator, Alert } from "react-native";
+import {
+  Modal,
+  View,
+  Text,
+  TouchableOpacity,
+  Image,
+  ActivityIndicator,
+  Alert,
+  Pressable,
+} from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { useUser } from "@clerk/clerk-expo";
 import * as ImagePicker from "expo-image-picker";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { icons } from "@/constants/svg";
 
-const SERVER_URL = "https://7193-93-200-239-96.ngrok-free.app";
+const SERVER_URL = "https://ce95-93-200-239-96.ngrok-free.app";
 
 interface GeneralModalProps {
   isVisible: boolean;
@@ -117,7 +125,7 @@ const GeneralModal: React.FC<GeneralModalProps> = ({ isVisible, onClose }) => {
 
   if (loading) {
     return (
-      <View className="flex-1 justify-center items-center bg-white">
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "white" }}>
         <ActivityIndicator size="large" color="#FF6C22" />
       </View>
     );
@@ -125,56 +133,94 @@ const GeneralModal: React.FC<GeneralModalProps> = ({ isVisible, onClose }) => {
 
   return (
     <Modal visible={isVisible} transparent={true} animationType="slide">
-      <SafeAreaView className="flex-1 bg-white">
-        <TouchableOpacity
-          style={{ position: "absolute", top: 78, left: 34, zIndex: 10 }}
-          onPress={onClose}
+    <Pressable
+      style={{ flex: 1, backgroundColor: "rgba(0, 0, 0, 0.5)" }}
+      onPress={onClose}
+    >
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: "white",
+          paddingHorizontal: 20,
+        }}
+      >
+        <View
+          style={{
+            position: "relative",
+            marginTop: 75, 
+            height: 50, 
+            justifyContent: "center",
+            alignItems: "center", 
+          }}
         >
-          <icons.ArrowLeft width={24} height={24} style={{ color: "#000" }} />
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={{
+              position: "absolute", 
+              left: 30, 
+            }}
+            onPress={onClose}
+          >
+            <icons.ArrowLeft width={24} height={24} style={{ color: "#000" }} />
+          </TouchableOpacity>
+          <Text
+            style={{
+              fontSize: 22,
+              fontWeight: "bold",
+              textAlign: "center",
+            }}
+          >
+            Загальне
+          </Text>
+        </View>
 
-        <View style={{ padding: 20, marginTop: 90 }}>
-          <Text style={{ fontSize: 24, fontWeight: "bold", textAlign: "center", marginBottom: 20 }}>Загальне</Text>
-
-          <View className="items-center mt-4">
-            <View className="relative">
-              <Image source={{ uri: image || "https://via.placeholder.com/150" }} className="w-24 h-24 rounded-full" />
-              <TouchableOpacity
-                onPress={selectImage}
-                style={{
-                  position: "absolute",
-                  bottom: -5,
-                  right: -5,
-                  backgroundColor: "#FFF",
-                  borderRadius: 50,
-                  padding: 5,
-                  elevation: 5,
-                }}
-              >
-                <icons.CameraIcon width={24} height={24} color="#FF6C22" />
-              </TouchableOpacity>
-            </View>
-            <Text className="mt-2 text-lg font-bold">{user?.fullName || "Байт"}</Text>
-            <Text className="text-gray-500">мопс</Text>
-          </View>
-
-          <View className="mt-6">
-            <Text className="text-sm font-bold">Дата народження</Text>
-            <DateTimePicker
-              value={birthDate ? new Date(birthDate) : new Date()}
-              mode="date"
-              display="default"
-              onChange={(event, selectedDate) => {
-                const currentDate = selectedDate || new Date(birthDate);
-                const formattedDate = currentDate.toISOString().split("T")[0];
-                setBirthDate(formattedDate);
-                updateBirthDate(formattedDate);
+      <View style={{ padding: 20 }}>
+        <View style={{ alignItems: "center", marginTop: 20 }}>
+          <View style={{ position: "relative" }}>
+            <Image
+              source={{ uri: image || "https://via.placeholder.com/150" }}
+              style={{
+                width: 96,
+                height: 96,
+                borderRadius: 48,
               }}
             />
+            <TouchableOpacity
+              onPress={selectImage}
+              style={{
+                position: "absolute",
+                bottom: -5,
+                right: -5,
+                backgroundColor: "#FFF",
+                borderRadius: 50,
+                padding: 5,
+                elevation: 5,
+              }}
+            >
+              <icons.CameraIcon width={24} height={24} color="#FF6C22" />
+            </TouchableOpacity>
           </View>
+          <Text style={{ marginTop: 8, fontSize: 18, fontWeight: "bold" }}>{user?.fullName || "Байт"}</Text>
+          <Text style={{ color: "#6B7280" }}>мопс</Text>
         </View>
-      </SafeAreaView>
-    </Modal>
+
+        <View style={{ marginTop: 20 }}>
+          <Text style={{ fontSize: 14, fontWeight: "bold" }}>Дата народження</Text>
+          <DateTimePicker
+            value={birthDate ? new Date(birthDate) : new Date()}
+            mode="date"
+            display="default"
+            onChange={(event, selectedDate) => {
+              const currentDate = selectedDate || new Date(birthDate);
+              const formattedDate = currentDate.toISOString().split("T")[0];
+              setBirthDate(formattedDate);
+              updateBirthDate(formattedDate);
+            }}
+          />
+        </View>
+      </View>
+    </View>
+  </Pressable>
+</Modal>
   );
 };
 

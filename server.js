@@ -192,30 +192,40 @@ app.post('/api/dog', async (req, res) => {
 });
 
 app.get('/api/user', async (req, res) => {
-  const clerkId = req.query.clerkId;
+  const { clerkId, uniqueCode } = req.query;
 
-  if (!clerkId) {
-      return res.status(400).json({ error: 'clerkId is required' });
+  if (!clerkId && !uniqueCode) {
+    return res.status(400).json({ error: 'clerkId или uniqueCode обязательны' });
   }
 
   try {
-      console.time('DB Query Time');
-      const user = await sql`
-      SELECT name, email, gender, birth_date, image, unique_code
-      FROM users
-      WHERE clerk_id = ${clerkId};
-    `;
-      console.timeEnd('DB Query Time');
+    let user;
+    if (clerkId) {
+      user = await sql`
+        SELECT name, email, gender, birth_date, image, unique_code
+        FROM users
+        WHERE clerk_id = ${clerkId};
+      `;
+    } else if (uniqueCode) {
+      user = await sql`
+        SELECT name, email, gender, birth_date, image, unique_code
+        FROM users
+        WHERE unique_code = ${uniqueCode};
+      `;
+    }
 
-      if (user.length === 0) {
-          return res.status(404).json({ error: 'User not found' });
-      }
-      res.status(200).json(user[0]);
+    if (!user || user.length === 0) {
+      return res.status(404).json({ error: 'Пользователь не найден' });
+    }
+
+    res.status(200).json(user[0]);
   } catch (error) {
-      console.error('Error fetching user:', error);
-      res.status(500).json({ error: 'Internal Server Error' });
+    console.error('Ошибка при получении пользователя:', error);
+    res.status(500).json({ error: 'Внутренняя ошибка сервера' });
   }
 });
+
+
 
 app.patch('/api/user', async (req, res) => {
   const { clerkId, birthDate } = req.body;

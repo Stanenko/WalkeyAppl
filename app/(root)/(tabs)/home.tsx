@@ -13,9 +13,7 @@ import HomeNotificationModal from "@/app/(root)/(modal)/HomeNotificationModal";
 import CreateWalkModal from "@/app/(root)/(modal)/CreateWalkModal";
 import * as Clipboard from 'expo-clipboard';
 
-
-
-const SERVER_URL = "https://7193-93-200-239-96.ngrok-free.app";
+const SERVER_URL = "https://ce95-93-200-239-96.ngrok-free.app";
 
 const fetchDataFromAPI = async (url: string, errorMessage: string): Promise<any> => {
   try {

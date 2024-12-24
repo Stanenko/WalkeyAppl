@@ -4,11 +4,10 @@ import {
   View,
   Text,
   TouchableOpacity,
-  StyleSheet,
   ScrollView,
+  StyleSheet,
   Switch,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 import { icons } from "@/constants/svg";
 
@@ -47,101 +46,123 @@ const NotificationsModal: React.FC<NotificationsModalProps> = ({ isVisible, onCl
 
   return (
     <Modal visible={isVisible} transparent={true} animationType="slide">
-      <SafeAreaView style={styles.container}>
-        <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-          <icons.ArrowLeft width={24} height={24} style={{ color: "#000" }} />
-        </TouchableOpacity>
-
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
-          <View style={styles.content}>
-            <Text style={styles.title}>Повідомлення</Text>
-
-            <View style={styles.setting}>
-              <Text style={styles.settingLabel}>
-                Запит дружби{"\n"}
-                <Text style={styles.settingDescription}>
-                  Увімкнення дозволяє отримувати нові запити дружби.
-                </Text>
-              </Text>
-              <Switch
-                value={toggleState1}
-                onValueChange={setToggleState1}
-                trackColor={{ false: "#767577", true: "#FF6C22" }}
-                thumbColor={toggleState1 ? "#FF6C22" : "#f4f3f4"}
-              />
-            </View>
-
-            <View style={styles.setting}>
-              <Text style={styles.settingLabel}>
-                Сповіщення про друзів, які зараз гуляють{"\n"}
-                <Text style={styles.settingDescription}>
-                  Сповіщення приходять, коли друзі знаходяться поруч.
-                </Text>
-              </Text>
-              <Switch
-                value={toggleState2}
-                onValueChange={setToggleState2}
-                trackColor={{ false: "#767577", true: "#FF6C22" }}
-                thumbColor={toggleState2 ? "#FF6C22" : "#f4f3f4"}
-              />
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>
-                Сповіщення про небезпеку поблизу
-              </Text>
-              <CustomCheckBox
-                label="Агресивні собаки"
-                value={checkBoxState1}
-                onValueChange={setCheckBoxState1}
-              />
-              <CustomCheckBox
-                label="Закриті зони або небезпечні умови (сайти)"
-                value={checkBoxState2}
-                onValueChange={setCheckBoxState2}
-              />
-              <CustomCheckBox
-                label="Місця з великою кількістю людей"
-                value={checkBoxState3}
-                onValueChange={setCheckBoxState3}
-              />
-              <CustomCheckBox
-                label="Діти з тваринами"
-                value={checkBoxState4}
-                onValueChange={setCheckBoxState4}
-              />
-            </View>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: "rgba(0, 0, 0, 0.5)",
+        }}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "white",
+            paddingHorizontal: 20,
+          }}
+        >
+          {/* Шапка */}
+          <View
+            style={{
+              position: "relative",
+              marginTop: 75, // Отступ сверху
+              height: 50, // Высота шапки
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <TouchableOpacity
+              style={{
+                position: "absolute",
+                left: 30,
+              }}
+              onPress={onClose}
+            >
+              <icons.ArrowLeft width={24} height={24} style={{ color: "#000" }} />
+            </TouchableOpacity>
+            <Text
+              style={{
+                fontSize: 22,
+                fontWeight: "bold",
+                textAlign: "center",
+              }}
+            >
+              Повідомлення
+            </Text>
           </View>
-        </ScrollView>
-      </SafeAreaView>
+
+          <ScrollView
+            contentContainerStyle={[styles.scrollContainer, { marginTop: 50 }]}
+          >
+            <View style={styles.content}>
+              <View style={styles.setting}>
+                <Text style={styles.settingLabel}>
+                  Запит дружби{"\n"}
+                  <Text style={styles.settingDescription}>
+                    Увімкнення дозволяє отримувати нові запити дружби.
+                  </Text>
+                </Text>
+                <Switch
+                  value={toggleState1}
+                  onValueChange={setToggleState1}
+                  trackColor={{ false: "#767577", true: "#FF6C22" }}
+                  thumbColor={toggleState1 ? "#FF6C22" : "#f4f3f4"}
+                />
+              </View>
+
+              <View style={styles.setting}>
+                <Text style={styles.settingLabel}>
+                  Сповіщення про друзів, які зараз гуляють{"\n"}
+                  <Text style={styles.settingDescription}>
+                    Сповіщення приходять, коли друзі знаходяться поруч.
+                  </Text>
+                </Text>
+                <Switch
+                  value={toggleState2}
+                  onValueChange={setToggleState2}
+                  trackColor={{ false: "#767577", true: "#FF6C22" }}
+                  thumbColor={toggleState2 ? "#FF6C22" : "#f4f3f4"}
+                />
+              </View>
+
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>
+                  Сповіщення про небезпеку поблизу
+                </Text>
+                <CustomCheckBox
+                  label="Агресивні собаки"
+                  value={checkBoxState1}
+                  onValueChange={setCheckBoxState1}
+                />
+                <CustomCheckBox
+                  label="Закриті зони або небезпечні умови (сайти)"
+                  value={checkBoxState2}
+                  onValueChange={setCheckBoxState2}
+                />
+                <CustomCheckBox
+                  label="Місця з великою кількістю людей"
+                  value={checkBoxState3}
+                  onValueChange={setCheckBoxState3}
+                />
+                <CustomCheckBox
+                  label="Діти з тваринами"
+                  value={checkBoxState4}
+                  onValueChange={setCheckBoxState4}
+                />
+              </View>
+            </View>
+          </ScrollView>
+        </View>
+      </View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "white",
-  },
-  closeButton: {
-    position: "absolute",
-    top: 78,
-    left: 34,
-    zIndex: 10,
-  },
   scrollContainer: {
     flexGrow: 1,
   },
   content: {
     paddingHorizontal: 20,
     paddingBottom: 40,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 20,
-    marginTop: 120,
   },
   setting: {
     flexDirection: "row",

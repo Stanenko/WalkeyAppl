@@ -11,8 +11,9 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import MapView, { Marker } from "react-native-maps";
 import { useUser } from "@clerk/clerk-expo";
 import * as Location from "expo-location";
+import { icons } from "@/constants/svg"; 
 
-const SERVER_URL = "https://7193-93-200-239-96.ngrok-free.app";
+const SERVER_URL = "https://ce95-93-200-239-96.ngrok-free.app";
 
 interface Walk {
   id: number;
@@ -38,6 +39,7 @@ const CreateWalkModal: React.FC<CreateWalkModalProps> = ({ isVisible, onClose })
   const [mapVisible, setMapVisible] = useState(false);
   const [walks, setWalks] = useState<Walk[]>([]);
   const [loading, setLoading] = useState(false);
+  const today = new Date();
 
   useEffect(() => {
     const getUserLocation = async () => {
@@ -99,7 +101,6 @@ const CreateWalkModal: React.FC<CreateWalkModalProps> = ({ isVisible, onClose })
       });
 
       if (response.ok) {
-        Alert.alert("Успіх", "Прогулянка успішно додана!");
         fetchWalks();
       } else {
         const errorData = await response.text();
@@ -126,7 +127,6 @@ const CreateWalkModal: React.FC<CreateWalkModalProps> = ({ isVisible, onClose })
       });
 
       if (response.ok) {
-        Alert.alert("Успіх", "Прогулянка успішно видалена!");
         fetchWalks();
       } else {
         const errorData = await response.json();
@@ -194,6 +194,7 @@ const CreateWalkModal: React.FC<CreateWalkModalProps> = ({ isVisible, onClose })
             value={date || new Date()}
             mode="date"
             display="default"
+            minimumDate={today} 
             onChange={(event, selectedDate) => setDate(selectedDate || date)}
           />
 
@@ -202,6 +203,9 @@ const CreateWalkModal: React.FC<CreateWalkModalProps> = ({ isVisible, onClose })
             value={time || new Date()}
             mode="time"
             display="default"
+            minimumDate={
+              date?.toDateString() === today.toDateString() ? today : undefined
+            } 
             onChange={(event, selectedTime) => setTime(selectedTime || time)}
           />
 
@@ -223,9 +227,9 @@ const CreateWalkModal: React.FC<CreateWalkModalProps> = ({ isVisible, onClose })
             onPress={saveWalkToDB}
             style={{
                 backgroundColor: "#FF6C22",
-                paddingVertical: 10,
-                borderRadius: 10,
-                marginTop: 20,
+                paddingVertical: 13,
+                borderRadius: 40,
+                marginTop: 15,
                 width: 340,
                 alignSelf: "center", 
             }}
@@ -235,12 +239,12 @@ const CreateWalkModal: React.FC<CreateWalkModalProps> = ({ isVisible, onClose })
             </Text>
             </TouchableOpacity>
 
-          <TouchableOpacity onPress={onClose} style={{ marginTop: 10 }}>
+          <TouchableOpacity onPress={onClose} style={{ marginTop: 15 }}>
             <Text style={{ color: "#FF6C22", fontWeight: "bold" }}>Скасувати</Text>
           </TouchableOpacity>
 
           <Text style={{ fontSize: 16, fontWeight: "bold", marginTop: 30, marginBottom: 10 }}>
-            Мої прогулянки:
+            Заплановані прогулянки:
           </Text>
           {sortedWalks.length === 0 ? (
             <Text style={{ fontSize: 14, fontStyle: "italic", color: "gray" }}>
@@ -302,7 +306,11 @@ const CreateWalkModal: React.FC<CreateWalkModalProps> = ({ isVisible, onClose })
                 })
               }
             >
-              {location && <Marker coordinate={location} />}
+              {location && (
+                <Marker coordinate={location}>
+                  <icons.PawIcon width={40} height={40} />
+                </Marker>
+              )}
             </MapView>
             <TouchableOpacity
             onPress={() => setMapVisible(false)}

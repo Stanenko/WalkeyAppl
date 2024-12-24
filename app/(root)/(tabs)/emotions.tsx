@@ -7,8 +7,10 @@ import GeneralModal from "@/app/(root)/(modal)/GeneralModal";
 import PermissionsModal from "@/app/(root)/(modal)/PermissionsModal";
 import NotificationsModal from "@/app/(root)/(modal)/NotificationsModal";
 import InviteFriendModal from "@/app/(root)/(modal)/InviteFriendModal";
+import FriendsModal from "@/app/(root)/(modal)/FriendsModal";
+import SubscriptionModal from "@/app/(root)/(modal)/SubscriptionModal";
 
-const SERVER_URL = "https://7193-93-200-239-96.ngrok-free.app";
+const SERVER_URL = "https://ce95-93-200-239-96.ngrok-free.app";
 
 
 interface ProfileItem {
@@ -27,6 +29,8 @@ const Emotions = () => {
   const [isNotificationsModalVisible, setIsNotificationsModalVisible] = useState(false);
   const [isInviteModalVisible, setIsInviteModalVisible] = useState(false);
   const [isAddPetModalVisible, setIsAddPetModalVisible] = useState(false);
+  const [isFriendsModalVisible, setIsFriendsModalVisible] = useState(false);
+  const [isSubscriptionModalVisible, setIsSubscriptionModalVisible] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -52,14 +56,14 @@ const Emotions = () => {
 
   const profileItems: ProfileItem[] = [
     { label: "Загальне", icon: icons.GMainIcon, onPress: () => setIsGeneralModalVisible(true) },
-    { label: "Друзі", icon: icons.GRiendIcon },
+    { label: "Друзі", icon: icons.GRiendIcon, onPress: () => setIsFriendsModalVisible(true) },
     { label: "Медичні дані", icon: icons.GMedIcon },
     { label: "Повідомлення", icon: icons.GMessageIcon, onPress: () => setIsNotificationsModalVisible(true) },
   ];
 
   const privacyItems: ProfileItem[] = [
     { label: "Дозволи", icon: icons.GPermissionIcon, onPress: () => setIsPermissionsModalVisible(true) },
-    { label: "Підписка", icon: icons.GDollarIcon },
+    { label: "Підписка", icon: icons.GDollarIcon, onPress: () => setIsSubscriptionModalVisible(true) },
   ];
 
   const otherItems: ProfileItem[] = [
@@ -196,6 +200,16 @@ const Emotions = () => {
         <InviteFriendModal
           isVisible={isInviteModalVisible}
           onClose={() => setIsInviteModalVisible(false)}
+        />
+
+        <FriendsModal 
+          isVisible={isFriendsModalVisible} 
+          onClose={() => setIsFriendsModalVisible(false)} 
+        />
+
+        <SubscriptionModal
+          isVisible={isSubscriptionModalVisible}
+          onClose={() => setIsSubscriptionModalVisible(false)}
         />
 
         <View className="px-10 mt-6">
