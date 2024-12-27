@@ -12,7 +12,7 @@ import FilterModal from "@/app/(root)/(modal)/FilterModal";
 import DogProfileModal from "@/app/(root)/(modal)/DogProfile";
 import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
 
-const SERVER_URL = "https://ce95-93-200-239-96.ngrok-free.app";
+const SERVER_URL = "https://799d-93-200-239-96.ngrok-free.app";
 
 type UpdateLocationParams = {
   latitude: number;

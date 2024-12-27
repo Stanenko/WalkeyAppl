@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Modal,
   View,
@@ -21,60 +21,109 @@ interface PermissionsModalProps {
 const PermissionsModal: React.FC<PermissionsModalProps> = ({ isVisible, onClose }) => {
   const [locationPermission, setLocationPermission] = useState<boolean>(false);
   const [cameraPermission, setCameraPermission] = useState<boolean>(false);
+  const [medicalPermission, setMedicalPermission] = useState<boolean>(false);
+
+  // Проверка текущих разрешений при открытии модального окна
+  useEffect(() => {
+    if (isVisible) {
+      checkPermissions();
+    }
+  }, [isVisible]);
+
+  const checkPermissions = async () => {
+    try {
+      // Проверка разрешений на локацию
+      const locationStatus = await Location.getForegroundPermissionsAsync();
+      setLocationPermission(locationStatus.status === "granted");
+
+      // Проверка разрешений на камеру
+      const cameraStatus = await Camera.getCameraPermissionsAsync();
+      setCameraPermission(cameraStatus.status === "granted");
+    } catch (error) {
+      console.error("Error checking permissions:", error);
+    }
+  };
 
   const handleLocationPermission = async (value: boolean) => {
-    try {
-      if (value) {
+    if (value) {
+      try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status === "granted") {
           setLocationPermission(true);
-          Alert.alert("Локація", "Доступ до локації надано.");
         } else {
-          setLocationPermission(false);
-          Alert.alert("Локація", "Доступ до локації відхилено.");
+          Alert.alert(
+            "Локація",
+            "Щоб увімкнути дозвіл на місцезнаходження, перейдіть до налаштувань пристрою вручну.",
+            [
+              { text: "Відкрити налаштування", onPress: () => Linking.openSettings() },
+              { text: "Скасувати", style: "cancel" },
+            ]
+          );
         }
-      } else {
-        setLocationPermission(false);
-        Alert.alert(
-          "Локація",
-          "Щоб відключити дозвіл на місцезнаходження, перейдіть до налаштувань пристрою вручну.",
-          [
-            { text: "Відкрити налаштування", onPress: () => Linking.openSettings() },
-            { text: "Скасувати", style: "cancel" },
-          ]
-        );
+      } catch (error) {
+        Alert.alert("Помилка", "Не вдалося опрацювати дозвіл до локації.");
+        console.error("Location permission error:", error);
       }
-    } catch (error) {
-      Alert.alert("Помилка", "Не вдалося опрацювати дозвіл до локації.");
-      console.error("Location permission error:", error);
+    } else {
+      setLocationPermission(false);
+      Alert.alert(
+        "Локація",
+        "Щоб вимкнути дозвіл на місцезнаходження, перейдіть до налаштувань пристрою вручну.",
+        [
+          { text: "Відкрити налаштування", onPress: () => Linking.openSettings() },
+          { text: "Скасувати", style: "cancel" },
+        ]
+      );
     }
   };
 
   const handleCameraPermission = async (value: boolean) => {
-    try {
-      if (value) {
+    if (value) {
+      try {
         const { status } = await Camera.requestCameraPermissionsAsync();
         if (status === "granted") {
           setCameraPermission(true);
-          Alert.alert("Камера", "Доступ до камери надано.");
         } else {
-          setCameraPermission(false);
-          Alert.alert("Камера", "Доступ до камери відхилено.");
+          Alert.alert(
+            "Камера",
+            "Щоб увімкнути дозвіл на використання камери, перейдіть до налаштувань пристрою вручну.",
+            [
+              { text: "Відкрити налаштування", onPress: () => Linking.openSettings() },
+              { text: "Скасувати", style: "cancel" },
+            ]
+          );
         }
-      } else {
-        setCameraPermission(false);
-        Alert.alert(
-          "Камера",
-          "Щоб відключити дозвіл на використання камери, перейдіть до налаштувань пристрою вручну.",
-          [
-            { text: "Відкрити налаштування", onPress: () => Linking.openSettings() },
-            { text: "Скасувати", style: "cancel" },
-          ]
-        );
+      } catch (error) {
+        Alert.alert("Помилка", "Не вдалося опрацювати дозвіл на використання камери.");
+        console.error("Camera permission error:", error);
       }
-    } catch (error) {
-      Alert.alert("Помилка", "Не вдалося опрацювати дозвіл на використання камери.");
-      console.error("Camera permission error:", error);
+    } else {
+      setCameraPermission(false);
+      Alert.alert(
+        "Камера",
+        "Щоб вимкнути дозвіл на використання камери, перейдіть до налаштувань пристрою вручну.",
+        [
+          { text: "Відкрити налаштування", onPress: () => Linking.openSettings() },
+          { text: "Скасувати", style: "cancel" },
+        ]
+      );
+    }
+  };
+
+  const handleMedicalPermission = (value: boolean) => {
+    if (value) {
+      setMedicalPermission(true);
+      Alert.alert("Медична історія", "Доступ до медичної історії надано.");
+    } else {
+      setMedicalPermission(false);
+      Alert.alert(
+        "Медична історія",
+        "Щоб увімкнути дозвіл на доступ до медичної історії, перейдіть до налаштувань пристрою вручну.",
+        [
+          { text: "Відкрити налаштування", onPress: () => Linking.openSettings() },
+          { text: "Скасувати", style: "cancel" },
+        ]
+      );
     }
   };
 
@@ -93,11 +142,10 @@ const PermissionsModal: React.FC<PermissionsModalProps> = ({ isVisible, onClose 
             paddingHorizontal: 20,
           }}
         >
-          {/* Шапка */}
           <View
             style={{
               position: "relative",
-              marginTop: 75, // Отступ сверху для шапки
+              marginTop: 75,
               height: 50,
               justifyContent: "center",
               alignItems: "center",
@@ -123,29 +171,59 @@ const PermissionsModal: React.FC<PermissionsModalProps> = ({ isVisible, onClose 
             </Text>
           </View>
 
-          <View style={[styles.content, { marginTop: 30 }]}>
+          <View style={[styles.content, { marginTop: 35 }]}>
             <View style={styles.permissionItem}>
-              <Text style={styles.permissionLabel}>
-                Дозволити відслідковувати місцезнаходження для пропозицій прогулянок та сповіщень про друзів поблизу.
+              <View style={styles.permissionRow}>
+                <Text style={styles.permissionMainText}>
+                  Дозволити відслідковувати місцезнаходження для пропозицій прогулянок та сповіщень про друзів поблизу.
+                </Text>
+                <Switch
+                  value={locationPermission}
+                  onValueChange={handleLocationPermission}
+                  thumbColor={locationPermission ? "#F15F15" : "#f4f3f4"}
+                  trackColor={{ false: "#FED9C6", true: "#FED9C6" }}
+                  style={{ alignSelf: "center" }}
+                />
+              </View>
+              <Text style={styles.permissionSubText}>
+                Гео-трекінг дозволяє нам пропонувати найкращі маршрути для прогулянок і сповіщати про друзів, які гуляють поруч.
               </Text>
-              <Switch
-                value={locationPermission}
-                onValueChange={handleLocationPermission}
-                trackColor={{ false: "#767577", true: "#FF6C22" }}
-                thumbColor={locationPermission ? "#FF6C22" : "#f4f3f4"}
-              />
             </View>
 
             <View style={styles.permissionItem}>
-              <Text style={styles.permissionLabel}>
-                Дозволити доступ до камери для відстеження емоційного стану песика.
+              <View style={styles.permissionRow}>
+                <Text style={styles.permissionMainText}>
+                  Дозволити доступ до камери для відстеження емоційного стану песика.
+                </Text>
+                <Switch
+                  value={cameraPermission}
+                  onValueChange={handleCameraPermission}
+                  thumbColor={cameraPermission ? "#F15F15" : "#f4f3f4"}
+                  trackColor={{ false: "#FED9C6", true: "#FED9C6" }}
+                  style={{ alignSelf: "center" }}
+                />
+              </View>
+              <Text style={styles.permissionSubText}>
+                Фото, зроблені під час прогулянки, допомагають визначити емоційний стан вашого песика.
               </Text>
-              <Switch
-                value={cameraPermission}
-                onValueChange={handleCameraPermission}
-                trackColor={{ false: "#767577", true: "#FF6C22" }}
-                thumbColor={cameraPermission ? "#FF6C22" : "#f4f3f4"}
-              />
+            </View>
+
+            <View style={styles.permissionItem}>
+              <View style={styles.permissionRow}>
+                <Text style={styles.permissionMainText}>
+                  Дозволити доступ до медичної історії для відстеження вакцинацій і медичних нагадувань.
+                </Text>
+                <Switch
+                  value={medicalPermission}
+                  onValueChange={handleMedicalPermission}
+                  thumbColor={medicalPermission ? "#F15F15" : "#f4f3f4"}
+                  trackColor={{ false: "#FED9C6", true: "#FED9C6" }}
+                  style={{ alignSelf: "center" }}
+                />
+              </View>
+              <Text style={styles.permissionSubText}>
+                Це дозволить відстежувати всі планові вакцинації вашого песика та нагадувати про необхідні медичні процедури.
+              </Text>
             </View>
           </View>
         </View>
@@ -159,19 +237,24 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   permissionItem: {
+    marginBottom: 20,
+    paddingVertical: 10,
+  },
+  permissionRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#FFCDB4",
+    marginBottom: 10,
   },
-  permissionLabel: {
-    flex: 1,
-    fontSize: 14,
+  permissionMainText: {
+    fontSize: 16,
     color: "#000",
-    marginRight: 10,
+    fontWeight: "bold",
+    flex: 1,
+  },
+  permissionSubText: {
+    fontSize: 14,
+    color: "#BDBBBB",
   },
 });
 

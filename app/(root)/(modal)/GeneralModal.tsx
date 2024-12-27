@@ -14,7 +14,7 @@ import { useUser } from "@clerk/clerk-expo";
 import * as ImagePicker from "expo-image-picker";
 import { icons } from "@/constants/svg";
 
-const SERVER_URL = "https://ce95-93-200-239-96.ngrok-free.app";
+const SERVER_URL = "https://799d-93-200-239-96.ngrok-free.app";
 
 interface GeneralModalProps {
   isVisible: boolean;
@@ -25,6 +25,8 @@ const GeneralModal: React.FC<GeneralModalProps> = ({ isVisible, onClose }) => {
   const { user } = useUser();
   const [birthDate, setBirthDate] = useState<string>("");
   const [image, setImage] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string>("Байт"); 
+  const [email, setEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -36,6 +38,8 @@ const GeneralModal: React.FC<GeneralModalProps> = ({ isVisible, onClose }) => {
         if (response.ok) {
           setBirthDate(data.birth_date || "");
           setImage(data.image || "https://via.placeholder.com/150");
+          setUserName(data.name || "Байт");
+          setEmail(data.email || null);
         } else {
           console.error("Ошибка сервера:", data.error);
         }
@@ -133,94 +137,116 @@ const GeneralModal: React.FC<GeneralModalProps> = ({ isVisible, onClose }) => {
 
   return (
     <Modal visible={isVisible} transparent={true} animationType="slide">
-    <Pressable
-      style={{ flex: 1, backgroundColor: "rgba(0, 0, 0, 0.5)" }}
-      onPress={onClose}
-    >
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: "white",
-          paddingHorizontal: 20,
-        }}
+      <Pressable
+        style={{ flex: 1, backgroundColor: "rgba(0, 0, 0, 0.5)" }}
+        onPress={onClose}
       >
         <View
           style={{
-            position: "relative",
-            marginTop: 75, 
-            height: 50, 
-            justifyContent: "center",
-            alignItems: "center", 
+            flex: 1,
+            backgroundColor: "white",
+            paddingHorizontal: 20,
           }}
         >
-          <TouchableOpacity
+          <View
             style={{
-              position: "absolute", 
-              left: 30, 
-            }}
-            onPress={onClose}
-          >
-            <icons.ArrowLeft width={24} height={24} style={{ color: "#000" }} />
-          </TouchableOpacity>
-          <Text
-            style={{
-              fontSize: 22,
-              fontWeight: "bold",
-              textAlign: "center",
+              position: "relative",
+              marginTop: 75,
+              height: 50,
+              justifyContent: "center",
+              alignItems: "center",
             }}
           >
-            Загальне
-          </Text>
-        </View>
-
-      <View style={{ padding: 20 }}>
-        <View style={{ alignItems: "center", marginTop: 20 }}>
-          <View style={{ position: "relative" }}>
-            <Image
-              source={{ uri: image || "https://via.placeholder.com/150" }}
-              style={{
-                width: 96,
-                height: 96,
-                borderRadius: 48,
-              }}
-            />
             <TouchableOpacity
-              onPress={selectImage}
               style={{
                 position: "absolute",
-                bottom: -5,
-                right: -5,
-                backgroundColor: "#FFF",
-                borderRadius: 50,
-                padding: 5,
-                elevation: 5,
+                left: 30,
+              }}
+              onPress={onClose}
+            >
+              <icons.ArrowLeft width={24} height={24} style={{ color: "#000" }} />
+            </TouchableOpacity>
+            <Text
+              style={{
+                fontSize: 22,
+                fontWeight: "bold",
+                textAlign: "center",
               }}
             >
-              <icons.CameraIcon width={24} height={24} color="#FF6C22" />
-            </TouchableOpacity>
+              Загальне
+            </Text>
           </View>
-          <Text style={{ marginTop: 8, fontSize: 18, fontWeight: "bold" }}>{user?.fullName || "Байт"}</Text>
-          <Text style={{ color: "#6B7280" }}>мопс</Text>
-        </View>
 
-        <View style={{ marginTop: 20 }}>
-          <Text style={{ fontSize: 14, fontWeight: "bold" }}>Дата народження</Text>
-          <DateTimePicker
-            value={birthDate ? new Date(birthDate) : new Date()}
-            mode="date"
-            display="default"
-            onChange={(event, selectedDate) => {
-              const currentDate = selectedDate || new Date(birthDate);
-              const formattedDate = currentDate.toISOString().split("T")[0];
-              setBirthDate(formattedDate);
-              updateBirthDate(formattedDate);
-            }}
-          />
+          <View style={{ padding: 20 }}>
+            <View style={{ alignItems: "center", marginTop: 20 }}>
+              <View style={{ position: "relative" }}>
+                <Image
+                  source={{ uri: image || "https://via.placeholder.com/150" }}
+                  style={{
+                    width: 96,
+                    height: 96,
+                    borderRadius: 48,
+                  }}
+                />
+                <TouchableOpacity
+                  onPress={selectImage}
+                  style={{
+                    position: "absolute",
+                    bottom: -5,
+                    right: -5,
+                    backgroundColor: "#FFF",
+                    borderRadius: 50,
+                    padding: 5,
+                    elevation: 5,
+                  }}
+                >
+                  <icons.CameraIcon width={24} height={24} color="#FF6C22" />
+                </TouchableOpacity>
+              </View>
+              <Text style={{ marginTop: 8, fontSize: 18, fontWeight: "bold" }}>
+                {userName}
+              </Text>
+              <Text style={{ color: "#6B7280" }}>мопс</Text>
+            </View>
+
+            <View style={{ marginTop: 40 }}>
+              <Text style={{ fontSize: 16, fontWeight: "bold", marginBottom: 20 }}>Дата народження</Text>
+              <View style={{ backgroundColor: "#FFFFFF", borderRadius: 10, padding: 5 }}>
+                <DateTimePicker
+                  style={{ marginLeft: -20 }}
+                  value={birthDate ? new Date(birthDate) : new Date()}
+                  mode="date"
+                  display="default"
+                  onChange={(event, selectedDate) => {
+                    const currentDate = selectedDate || new Date(birthDate);
+                    const formattedDate = currentDate.toISOString().split("T")[0];
+                    setBirthDate(formattedDate);
+                    updateBirthDate(formattedDate);
+                  }}
+                  textColor="#5E5E5E"
+                />
+              </View>
+            </View>
+
+            <View style={{ marginTop: 30 }}>
+              <Text style={{ fontSize: 16, fontWeight: "bold", marginBottom: 20 }}>Електронна пошта</Text>
+              <View
+                style={{
+                  padding: 15,
+                  backgroundColor: "#F0F0F0",
+                  borderRadius: 10,
+                  justifyContent: "center",
+                }}
+              >
+                <Text style={{ fontSize: 16, color: "#000000" }}>
+                  {email || "Додати електронну пошту"}
+                </Text>
+              </View>
+            </View>
+          </View>
         </View>
-      </View>
-    </View>
-  </Pressable>
-</Modal>
+      </Pressable>
+    </Modal>
   );
 };
 

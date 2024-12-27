@@ -15,7 +15,7 @@ type MedicalRecord = {
   type: 'vaccination' | 'protection';
 };
 
-const SERVER_URL = "https://ce95-93-200-239-96.ngrok-free.app";
+const SERVER_URL = "https://799d-93-200-239-96.ngrok-free.app";
 
 const Doctor = () => {
   const [isSterilized, setIsSterilized] = useState(true);

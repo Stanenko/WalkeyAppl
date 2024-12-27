@@ -13,7 +13,7 @@ import HomeNotificationModal from "@/app/(root)/(modal)/HomeNotificationModal";
 import CreateWalkModal from "@/app/(root)/(modal)/CreateWalkModal";
 import * as Clipboard from 'expo-clipboard';
 
-const SERVER_URL = "https://ce95-93-200-239-96.ngrok-free.app";
+const SERVER_URL = "https://799d-93-200-239-96.ngrok-free.app";
 
 const fetchDataFromAPI = async (url: string, errorMessage: string): Promise<any> => {
   try {
@@ -660,7 +660,7 @@ const Home = () => {
           longitude: myDog.longitude,
         });
 
-        const allDogs = dogsData.map((dog, index) => ({
+        const allDogs = dogsData.map((dog: DogInterface, index: number) => ({
           ...dog,
           dog_id: dog.dog_id || `generated_${index}`,
           similarity_percentage: 0,
@@ -668,7 +668,7 @@ const Home = () => {
           longitude: parseFloat(dog.longitude),
         }));
 
-        console.log("Координаты собак до фильтрации:", allDogs.map(dog => ({
+        console.log("Координаты собак до фильтрации:", allDogs.map((dog: DogInterface) => ({
           name: dog.name,
           latitude: dog.latitude,
           longitude: dog.longitude,

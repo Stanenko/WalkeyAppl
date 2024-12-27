@@ -16,7 +16,7 @@ import { getServerUrl } from "@/utils/getServerUrl";
 import { useRef } from "react";
 
 
-const SERVER_URL = "https://ce95-93-200-239-96.ngrok-free.app";
+const SERVER_URL = "https://799d-93-200-239-96.ngrok-free.app";
 
 
 
@@ -24,7 +24,18 @@ const SignUp = () => {
     const { isLoaded, signUp, setActive } = useSignUp();
     const router = useRouter();
     const [step, setStep] = useState(1);
-    const [form, setForm] = useState({
+    const [form, setForm] = useState<{
+        name: string;
+        email: string;
+        password: string;
+        gender: string;
+        birthDay: string;
+        birthMonth: string;
+        birthYear: string;
+        breed: string;
+        image: string | null;
+        activityLevel: number;
+    }>({
         name: "",
         email: "",
         password: "",
@@ -33,9 +44,9 @@ const SignUp = () => {
         birthMonth: "",
         birthYear: "",
         breed: "",
-        image: null,
+        image: null, 
         activityLevel: 50,
-    });
+    });    
 
     const getMonthNumber = (monthName: string): string => {
         const months: Record<string, string> = {
@@ -173,8 +184,13 @@ const SignUp = () => {
           !form.breed ||
           !form.activityLevel
         ) {
-          Alert.alert("Помилка", "Всі поля повинні бути заповнені.");
+          Alert.alert("Помилка", "Всі поля повинні бути заповнені");
           return;
+        }
+
+        if (!signUp || !setActive) {
+            Alert.alert("Помилка", "Не вдалося завершити реєстрацію. Спробуйте пізніше");
+            return;
         }
       
         try {
@@ -204,7 +220,7 @@ const SignUp = () => {
                 gender: form.gender,
                 birthDate: formattedBirthDate,
                 breed: form.breed,
-                image: null, // Убедитесь, что сервер ожидает это поле как NULL
+                image: null,
                 activityLevel: form.activityLevel,
             }),
           }) .then(async (response) => {
