@@ -10,7 +10,7 @@ import InviteFriendModal from "@/app/(root)/(modal)/InviteFriendModal";
 import FriendsModal from "@/app/(root)/(modal)/FriendsModal";
 import SubscriptionModal from "@/app/(root)/(modal)/SubscriptionModal";
 
-const SERVER_URL = "https://799d-93-200-239-96.ngrok-free.app";
+const SERVER_URL = "https://7d72-93-200-239-96.ngrok-free.app";
 
 
 interface ProfileItem {

@@ -59,12 +59,11 @@ const NotificationsModal: React.FC<NotificationsModalProps> = ({ isVisible, onCl
             paddingHorizontal: 20,
           }}
         >
-          {/* Шапка */}
           <View
             style={{
               position: "relative",
-              marginTop: 75, // Отступ сверху
-              height: 50, // Высота шапки
+              marginTop: 75, 
+              height: 50, 
               justifyContent: "center",
               alignItems: "center",
             }}

@@ -4,7 +4,7 @@ import { images } from '@/constants/index';
 import { icons } from '@/constants/svg';
 
 interface Dog {
-  image?: string;
+  image?: string; 
   name?: string;
   similarity_percentage?: number;
   status?: string;
@@ -125,7 +125,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 30,
     padding: 20,
     elevation: 5,
-    boxShadow: '#000',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 5,
@@ -226,10 +226,6 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     paddingVertical: 14,
     marginBottom: 10,
-  },
-  pawIcon: {
-    marginRight: 8,
-    color: 'white',
   },
   orangeButtonText: {
     color: 'white',

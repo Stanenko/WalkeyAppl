@@ -12,8 +12,10 @@ import { getServerUrl } from "@/utils/getServerUrl";
 import HomeNotificationModal from "@/app/(root)/(modal)/HomeNotificationModal";
 import CreateWalkModal from "@/app/(root)/(modal)/CreateWalkModal";
 import * as Clipboard from 'expo-clipboard';
+import { useToggleStore } from "@/store/toggleStore";
+import useFetchDogs from "@/hooks/useFetchDogs";
 
-const SERVER_URL = "https://799d-93-200-239-96.ngrok-free.app";
+const SERVER_URL = "https://7d72-93-200-239-96.ngrok-free.app";
 
 const fetchDataFromAPI = async (url: string, errorMessage: string): Promise<any> => {
   try {
@@ -138,7 +140,7 @@ const DogList: React.FC<DogListProps> = ({ dogs, onDogSelect }) => {
         </TouchableOpacity>
       </View>
     );
-  }  
+  }
 
   return (
     <ScrollView horizontal className="mt-3" showsHorizontalScrollIndicator={false}>
@@ -156,8 +158,7 @@ const DogList: React.FC<DogListProps> = ({ dogs, onDogSelect }) => {
           }}
         >
           <Image
-            source={images.OtherDogs}
-            defaultSource={images.OtherDogs}
+            source={dog.image ? { uri: dog.image } : images.OtherDogs}
             style={{
               width: 80,
               height: "100%",
@@ -400,10 +401,10 @@ const Home = () => {
   const [userName, setUserName] = useState('Байт');
   const [gender, setGender] = useState('male');
   const [birthDate, setBirthDate] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [isToggled, setIsToggled] = useState(false);
+  const isToggled = useToggleStore((state) => state.isToggled);
+  const setIsToggled = useToggleStore((state) => state.setIsToggled);
   const [image, setImage] = useState(null);
-  const [dogs, setDogs] = useState<DogInterface[]>([]);
+  const { dogs, loading } = useFetchDogs(user || null, SERVER_URL);
   const [breed, setBreed] = useState("Не dказано");
   const [uniqueCode, setUniqueCode] = useState("Не вказано");
   const [selectedDog, setSelectedDog] = useState<DogInterface | null>(null);
@@ -434,35 +435,52 @@ const Home = () => {
     }, 3000);
   };
 
+  const onDogSelect = (dog: DogInterface) => {
+    setSelectedDog({
+      image: dog.image || null,
+      name: dog.name || "Без имени",
+      similarity_percentage: dog.similarity_percentage || 0,
+      status: dog.status || "вдома",
+      gender: dog.gender || "unknown",
+      breed: dog.breed || "Не указано",
+      age: dog.age || 0, 
+      walkingPlace: dog.walkingPlace || "Не указано",
+    });
+    setModalVisible(true); 
+  };
+  
   const fetchUserData = async () => {
     if (!user || !user.id) return;
-
-    const userData = await fetchDataFromAPI(
-      `${SERVER_URL}/api/user?clerkId=${user.id}`,
-      "Error fetching user data"
-    );
-
-    const dogData = await fetchDataFromAPI(
-      `${SERVER_URL}/api/dogs/user?clerkId=${user.id}`,
-      "Error fetching dog data"
-    );
-
-    if (userData) {
-      setUserName(userData.name || "Без имени");
-      setGender(userData.gender || "unknown");
-      setBirthDate(userData.birth_date || "");
-      setImage(userData.image || "https://via.placeholder.com/150");
-      setUniqueCode(userData.unique_code || "Не вказано");
+  
+    try {
+      const userData = await fetchDataFromAPI(
+        `${SERVER_URL}/api/user?clerkId=${user.id}`,
+        "Error fetching user data"
+      );
+  
+      const dogData = await fetchDataFromAPI(
+        `${SERVER_URL}/api/dogs/user?clerkId=${user.id}`,
+        "Error fetching dog data"
+      );
+  
+      if (userData) {
+        setUserName(userData.name || "Без имени");
+        setGender(userData.gender || "unknown");
+        setBirthDate(userData.birth_date || "");
+        setImage(userData.image || "https://via.placeholder.com/150");
+        setUniqueCode(userData.unique_code || "Не вказано");
+      }
+  
+      if (dogData && dogData.length > 0) {
+        setBreed(dogData[0].breed || "Не вказано");
+      } else {
+        setBreed("Не вказано");
+      }
+    } catch (error) {
+      console.error("Error fetching user or dog data:", error);
     }
-
-    if (dogData && dogData.length > 0) {
-      setBreed(dogData[0].breed || "Не вказано");
-    } else {
-      setBreed("Не вказано");
-    }
-
-    setLoading(false);
   };
+  
 
 
   const formatUniqueCode = (code: string | undefined): string => {
@@ -493,201 +511,29 @@ const Home = () => {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const [userData, dogsData] = await Promise.all([
-          fetchDataFromAPI(`${SERVER_URL}/api/user?clerkId=${user?.id}`, "Error fetching user data"),
-          fetchDataFromAPI(`${SERVER_URL}/api/users/locations?clerkId=${user?.id}`, "Error fetching dogs data")
-        ]);
-
+        const userData = await fetchDataFromAPI(
+          `${SERVER_URL}/api/user?clerkId=${user?.id}`,
+          "Error fetching user data"
+        );
+  
         if (userData) {
           setUserName(userData.name || "Без имени");
           setBreed(userData.breed || "Не указано");
         }
-        if (dogsData && dogsData.length > 0) {
-          setDogs(dogsData);
-        }
       } catch (error) {
         console.error("Ошибка загрузки данных:", error);
       }
     };
-
+  
     if (user?.id) {
       fetchInitialData();
     }
   }, [user?.id]);
-
-
+  
 
   useEffect(() => {
     console.log("Current dogs state:", dogs);
   }, [dogs]);
-
-
-  useEffect(() => {
-    const fetchDogsNearby = async () => {
-      if (!user || !user.id) return;
-    
-      console.log("Fetching dogs nearby...");
-      const startTime = Date.now();
-    
-      try {
-        const userResponse = await fetch(`${SERVER_URL}/api/user?clerkId=${user.id}`);
-        console.log("Response status for user data:", userResponse.status);
-    
-        if (!userResponse.ok) {
-          const errorData = await userResponse.json();
-          console.error("Error fetching user data:", errorData.error);
-          return;
-        }
-    
-        const userData = await userResponse.json();
-        console.log("User data response:", userData);
-    
-        const myDog = new Dog(
-          user.id,
-          userData.breed || "unknown",
-          userData.weight || 10,
-          userData.age || 5,
-          userData.emotional_status || 5,
-          userData.activity_level || 5,
-          parseFloat(userData.latitude) || 56.0,
-          parseFloat(userData.longitude) || 12.7,
-          userData.after_walk_points || [],
-          userData.received_points_by_breed || [],
-          userData.vaccination_status || {},
-          userData.anti_tick !== undefined ? userData.anti_tick : true
-        );
-    
-        console.log("MyDog object:", myDog);
-    
-        const dogsResponse = await fetch(`${SERVER_URL}/api/users/locations?clerkId=${user.id}`);
-        console.log("Response status for nearby dogs:", dogsResponse.status);
-    
-        if (!dogsResponse.ok) {
-          const errorDogsData = await dogsResponse.json();
-          console.error("Error fetching nearby dogs:", errorDogsData.error);
-          return;
-        }
-    
-        const dogsData = await dogsResponse.json();
-        console.log("Nearby dogs data response:", dogsData);
-    
-        const allDogs = dogsData.map((dog: any, index: number) => ({
-          ...dog,
-          dog_id: dog.dog_id || `generated_${index}`,
-          latitude: parseFloat(dog.latitude),
-          longitude: parseFloat(dog.longitude),
-          similarity_percentage: 0,
-        }));
-    
-        console.log("All dogs:", allDogs);
-    
-        const filteredDogs = allDogs.filter((dog: DogInterface) => {
-          const distance = calculate_geographic_distance(
-            { lat: myDog.latitude, lng: myDog.longitude },
-            { lat: dog.latitude, lng: dog.longitude }
-          );          
-          return distance <= 4000;
-        });
-        
-        if (filteredDogs.length === 0) {
-          console.log("Поки що поряд з вами ніхто не гуляє");
-          setDogs([]);
-          return;
-        }
-
-        console.log("Dogs within 4 km:", filteredDogs);
-    
-        const matchedDogs = match_dogs(myDog, filteredDogs, 500);
-        console.log("Matched dogs:", matchedDogs);
-    
-        setDogs(matchedDogs);
-        console.log("Final matched dogs in state:", matchedDogs);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      } finally {
-        console.log("Time for fetchDogsNearby:", Date.now() - startTime, "ms");
-      }
-    };    
-
-    fetchDogsNearby();
-  }, [user]);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const userId = user?.id;
-
-        if (!userId) {
-          console.error("User ID is not defined");
-          return;
-        }
-        
-        const [userResponse, dogsResponse] = await Promise.all([
-          fetch(`${SERVER_URL}/api/user?clerkId=${userId}`),
-          fetch(`${SERVER_URL}/api/users/locations?clerkId=${userId}`),
-        ]);        
-
-        if (!userResponse.ok || !dogsResponse.ok) {
-          console.error("Ошибка запросов к API");
-          return;
-        }
-
-        const userData = await userResponse.json();
-        const dogsData = await dogsResponse.json();
-
-        console.log("Координаты пользователя из API:", {
-          latitude: userData.latitude,
-          longitude: userData.longitude,
-        });
-
-        const myDog = new Dog(
-          userData.id,
-          userData.breed || "unknown",
-          userData.weight || 10,
-          userData.age || 5,
-          userData.emotional_status || 5,
-          userData.activity_level || 5,
-          parseFloat(userData.latitude) || 56.0,
-          parseFloat(userData.longitude) || 12.7,
-          userData.after_walk_points || [],
-          userData.received_points_by_breed || [],
-          userData.vaccination_status || {},
-          userData.anti_tick !== undefined ? userData.anti_tick : true
-        );
-
-        console.log("Координаты пользователя:", {
-          latitude: myDog.latitude,
-          longitude: myDog.longitude,
-        });
-
-        const allDogs = dogsData.map((dog: DogInterface, index: number) => ({
-          ...dog,
-          dog_id: dog.dog_id || `generated_${index}`,
-          similarity_percentage: 0,
-          latitude: parseFloat(dog.latitude),
-          longitude: parseFloat(dog.longitude),
-        }));
-
-        console.log("Координаты собак до фильтрации:", allDogs.map((dog: DogInterface) => ({
-          name: dog.name,
-          latitude: dog.latitude,
-          longitude: dog.longitude,
-        })));
-
-        const matchedDogs = match_dogs(myDog, allDogs, 500);
-        console.log("Совпадения собак:", matchedDogs);
-
-        setDogs(matchedDogs);
-      } catch (error) {
-        console.error("Ошибка загрузки данных:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, [user]);
-
 
   useEffect(() => {
     console.log("Current dogs state:", dogs);
@@ -698,11 +544,14 @@ const Home = () => {
     if (!isToggled && wasToggledOn.current) {
       navigation.navigate('WalkEndScreen');
     }
-
+  
     wasToggledOn.current = isToggled;
-  }, [isToggled]);
+  }, [isToggled, navigation]);
 
-  const toggleSwitch = () => setIsToggled(!isToggled);
+  const toggleSwitch = () => {
+    setIsToggled(!isToggled);
+  };
+  
 
   console.log("Собаки после расчета метчинга:", dogs);
 
@@ -770,8 +619,8 @@ const Home = () => {
         <View className="bg-[#FFF7F2] rounded-2xl p-5 mt-6">
           <View className="flex-row items-center ml-[2px]">
             <Image
-              source={images.YourDog}
-              className="w-20 h-20 rounded-2xl"
+              source={image ? { uri: image } : images.YourDog}
+              style={{ width: 80, height: 80, borderRadius: 12 }}
             />
             <View className="ml-[28px]">
               <Text className="text-lg font-bold">{userName}</Text>
@@ -881,13 +730,10 @@ const Home = () => {
 
         <View className="mt-5">
           <Text className="font-bold text-[18px] mr-2">Хто поруч на прогулянці?</Text>
-          <DogList
-            dogs={dogs}
-            onDogSelect={(dog: DogInterface) => {
-              setSelectedDog(dog);
-              setModalVisible(true);
-            }}
-          />
+            <DogList
+              dogs={dogs}
+              onDogSelect={onDogSelect} 
+            />
 
         </View>
 

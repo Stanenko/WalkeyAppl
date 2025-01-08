@@ -15,7 +15,7 @@ type MedicalRecord = {
   type: 'vaccination' | 'protection';
 };
 
-const SERVER_URL = "https://799d-93-200-239-96.ngrok-free.app";
+const SERVER_URL = "https://7d72-93-200-239-96.ngrok-free.app";
 
 const Doctor = () => {
   const [isSterilized, setIsSterilized] = useState(true);
@@ -50,7 +50,7 @@ const Doctor = () => {
       const rawData: Array<{ id: number; name: string; lastdate: string; nextdate: string; type: string }> =
         await response.json();
   
-      console.log(`${type.toUpperCase()} raw data:`, rawData); // Вывод данных из API
+      console.log(`${type.toUpperCase()} raw data:`, rawData);
   
       const formattedData = rawData.map(record => ({
         id: record.id,
@@ -60,7 +60,7 @@ const Doctor = () => {
         type: record.type as 'vaccination' | 'protection',
       }));
   
-      console.log(`${type.toUpperCase()} formatted data:`, formattedData); // Вывод отформатированных данных
+      console.log(`${type.toUpperCase()} formatted data:`, formattedData);
   
       setData(formattedData);
     } catch (error) {

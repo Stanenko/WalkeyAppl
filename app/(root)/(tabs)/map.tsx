@@ -11,8 +11,10 @@ import { useUser } from "@clerk/clerk-expo";
 import FilterModal from "@/app/(root)/(modal)/FilterModal";
 import DogProfileModal from "@/app/(root)/(modal)/DogProfile";
 import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
+import { useToggleStore } from "@/store/toggleStore";
 
-const SERVER_URL = "https://799d-93-200-239-96.ngrok-free.app";
+
+const SERVER_URL = "https://7d72-93-200-239-96.ngrok-free.app";
 
 type UpdateLocationParams = {
   latitude: number;
@@ -94,7 +96,8 @@ const fetchOtherUsersLocations = async (clerkId: string, filters: Filters = {}):
 
 const Map = () => {
   const { userLatitude, userLongitude, setUserLocation } = useLocationStore();
-  const [isToggled, setIsToggled] = useState<boolean>(false);
+  const isToggled = useToggleStore((state) => state.isToggled);
+  const setIsToggled = useToggleStore((state) => state.setIsToggled);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isConnected, setIsConnected] = useState<boolean>(true);
   const { user } = useUser();
@@ -106,6 +109,7 @@ const Map = () => {
   const [filtersApplied, setFiltersApplied] = useState<boolean>(false);
   const [selectedDog, setSelectedDog] = useState<any | null>(null);
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
+  const [userImage, setUserImage] = useState<string | null>(null);
 
   const handleFilterChange = (key: string, value: string) => {
     setFilters((prevFilters) => ({
@@ -159,8 +163,10 @@ const Map = () => {
     }
   };
 
-  const toggleSwitch = () => setIsToggled(!isToggled);
-
+  const toggleSwitch = () => {
+    setIsToggled(!isToggled); 
+  };
+  
   useEffect(() => {
     const fetchUserData = async () => {
       if (!user || !user.id) return;
@@ -189,6 +195,25 @@ const Map = () => {
     });
     return () => unsubscribe();
   };
+
+  const fetchUserImage = async (clerkId: string) => {
+    try {
+      const response = await fetch(`${SERVER_URL}/api/user?clerkId=${clerkId}`);
+      const data = await response.json();
+      return data.image || null;
+    } catch (error) {
+      console.error("Ошибка загрузки изображения пользователя:", error);
+      return null;
+    }
+  };
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchUserImage(user.id).then((image) => {
+        setUserImage(image);
+      });
+    }
+  }, [user?.id]); 
 
   useEffect(() => {
     toggleConnectionListener();
@@ -279,57 +304,67 @@ const Map = () => {
           }}
         >
           <Marker coordinate={{ latitude: userLatitude, longitude: userLongitude }}>
-            <View style={{ alignItems: "center" }}>
-              <View
-                style={{
-                  borderWidth: 7,
-                  borderColor: "#FF6C22",
-                  borderRadius: 50,
-                }}
-              >
-                <Image source={images.YourDog} style={{ width: 64, height: 64, borderRadius: 32 }} />
-              </View>
-              <Text style={{ marginTop: 4, fontWeight: "bold" }}>{userName}</Text>
+          <View style={{ alignItems: "center" }}>
+            <View
+              style={{
+                borderWidth: 7,
+                borderColor: "#FF6C22",
+                borderRadius: 50,
+              }}
+            >
+            <Image
+              source={
+                userImage
+                  ? { uri: userImage } 
+                  : images.YourDog 
+              }
+              style={{ width: 64, height: 64, borderRadius: 32 }}
+            />
+
             </View>
-          </Marker>
+            <Text style={{ marginTop: 4, fontWeight: "bold" }}>{userName}</Text>
+          </View>
+        </Marker>
 
-          {otherUsersLocations.map((location, index) => {
-            const key = `${location.name}-${location.latitude}-${location.longitude}`;
+         {otherUsersLocations.map((location, index) => {
+  const key = `${location.name}-${location.latitude}-${location.longitude}`;
 
-            if (!location.latitude || !location.longitude) {
-              console.error(`Invalid coordinates for user: ${location.name}`);
-              return null;
-            }
+  if (!location.latitude || !location.longitude) {
+    console.error(`Invalid coordinates for user: ${location.name}`);
+    return null;
+  }
 
-            const borderColor = location.gender === "female" ? "#FC6FCC" : "#40B3F4";
+  const borderColor = location.gender === "female" ? "#FC6FCC" : "#40B3F4";
 
-            return (
-              <Marker
-                key={key}
-                coordinate={{
-                  latitude: parseFloat(location.latitude),
-                  longitude: parseFloat(location.longitude),
-                }}
-                onPress={() => openDogProfile(location)}
-              >
-                <View style={{ alignItems: "center" }}>
-                  <View
-                    style={{
-                      borderWidth: 7,
-                      borderColor: borderColor,
-                      borderRadius: 50,
-                    }}
-                  >
-                    <Image
-                      source={images.YourDog}
-                      style={{ width: 64, height: 64, borderRadius: 32 }}
-                    />
-                  </View>
-                  <Text style={{ marginTop: 4, fontWeight: "bold" }}>{location.name}</Text>
-                </View>
-              </Marker>
-            );
-          })}
+  return (
+    <Marker
+      key={key}
+      coordinate={{
+        latitude: parseFloat(location.latitude),
+        longitude: parseFloat(location.longitude),
+      }}
+      onPress={() => openDogProfile(location)}
+    >
+      <View style={{ alignItems: "center" }}>
+        <View
+          style={{
+            borderWidth: 7,
+            borderColor: borderColor,
+            borderRadius: 50,
+          }}
+        >
+          <Image
+            source={location.image 
+              ? { uri: location.image } 
+              : images.YourDog}
+            style={{ width: 64, height: 64, borderRadius: 32 }}
+          />
+        </View>
+        <Text style={{ marginTop: 4, fontWeight: "bold" }}>{location.name}</Text>
+      </View>
+    </Marker>
+  );
+})}
         </MapView>
       ) : (
         <View className="flex-1 justify-center items-center">

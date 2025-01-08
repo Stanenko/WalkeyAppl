@@ -10,11 +10,21 @@ import {
   Pressable,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { useUser } from "@clerk/clerk-expo";
+import { useUser, useClerk } from "@clerk/clerk-expo";
 import * as ImagePicker from "expo-image-picker";
 import { icons } from "@/constants/svg";
+import { useNavigation } from "@react-navigation/native";
+import { uploadImageToFirebase } from "@/utils/firebaseStorageUtils";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
-const SERVER_URL = "https://799d-93-200-239-96.ngrok-free.app";
+
+const SERVER_URL = "https://7d72-93-200-239-96.ngrok-free.app";
+
+type RootStackParamList = {
+  welcome: undefined;
+};
+
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, "welcome">; 
 
 interface GeneralModalProps {
   isVisible: boolean;
@@ -23,35 +33,33 @@ interface GeneralModalProps {
 
 const GeneralModal: React.FC<GeneralModalProps> = ({ isVisible, onClose }) => {
   const { user } = useUser();
+  const { signOut } = useClerk();
   const [birthDate, setBirthDate] = useState<string>("");
   const [image, setImage] = useState<string | null>(null);
-  const [userName, setUserName] = useState<string>("Байт"); 
+  const [userName, setUserName] = useState<string>("Байт");
   const [email, setEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showSignOutConfirmation, setShowSignOutConfirmation] = useState(false);
+  const navigation = useNavigation<NavigationProp>();
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      if (!user || !user.id) return;
-      try {
-        const response = await fetch(`${SERVER_URL}/api/user?clerkId=${user.id}`);
-        const data = await response.json();
-        if (response.ok) {
-          setBirthDate(data.birth_date || "");
+    useEffect(() => {
+      const fetchUserData = async () => {
+        if (!user || !user.id) return;
+    
+        try {
+          const response = await fetch(`${SERVER_URL}/api/user?clerkId=${user.id}`);
+          const data = await response.json();
+          console.log("Полученные данные пользователя:", data);
           setImage(data.image || "https://via.placeholder.com/150");
-          setUserName(data.name || "Байт");
-          setEmail(data.email || null);
-        } else {
-          console.error("Ошибка сервера:", data.error);
+        } catch (error) {
+          console.error("Ошибка при загрузке данных пользователя:", error);
+        } finally {
+          setLoading(false);
         }
-      } catch (error) {
-        console.error("Ошибка при запросе данных пользователя:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUserData();
-  }, [user]);
+      };
+    
+      fetchUserData();
+    }, [user]);    
 
   const updateBirthDate = async (newDate: string) => {
     try {
@@ -78,52 +86,66 @@ const GeneralModal: React.FC<GeneralModalProps> = ({ isVisible, onClose }) => {
     }
   };
 
-  const selectImage = async () => {
+  const handleImageUpload = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
     if (!permissionResult.granted) {
-      Alert.alert("Нет доступа", "Пожалуйста, дайте доступ к галерее.");
+      Alert.alert("Нет доступа к галерее!", "Пожалуйста, предоставьте доступ.");
       return;
     }
-
+  
     const pickerResult = await ImagePicker.launchImageLibraryAsync({
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.5,
     });
-
+  
     if (!pickerResult.canceled) {
-      const selectedImageUri = pickerResult.assets?.[0]?.uri;
-      if (selectedImageUri) {
-        setImage(selectedImageUri);
-        uploadImageToDB(selectedImageUri);
+      const imageUri = pickerResult.assets[0].uri;
+  
+      try {
+        const formData = new FormData();
+        formData.append("file", {
+          uri: imageUri,
+          name: "profile.jpg",
+          type: "image/jpeg",
+        } as any);
+        formData.append("clerkId", user?.id || "");
+  
+        console.log("FormData для отправки:", formData);
+  
+        const response = await fetch(`${SERVER_URL}/api/upload`, {
+          method: "POST",
+          body: formData,
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "multipart/form-data",
+          },
+        });
+  
+        if (response.ok) {
+          const result = await response.json();
+          console.log("Фото загружено. URL:", result.url);
+          setImage(result.url);
+          Alert.alert("Успешно", "Фото успешно загружено!");
+        } else {
+          const errorText = await response.text();
+          console.error("Ошибка сервера при загрузке изображения:", errorText);
+          Alert.alert("Ошибка", "Не удалось загрузить фото на сервер.");
+        }
+      } catch (error) {
+        console.error("Ошибка при загрузке изображения:", error);
+        Alert.alert("Ошибка", "Произошла ошибка при загрузке фото.");
       }
     }
-  };
-
-  const uploadImageToDB = async (imageUri: string) => {
+  };  
+   
+  const handleSignOut = async () => {
+    setShowSignOutConfirmation(false);
     try {
-      const formData = new FormData();
-      formData.append("clerkId", user?.id || "");
-      formData.append("image", {
-        uri: imageUri,
-        name: "profile.jpg",
-        type: "image/jpeg",
-      } as unknown as Blob);
-
-      const response = await fetch(`${SERVER_URL}/api/user/image`, {
-        method: "PATCH",
-        body: formData,
-      });
-
-      if (response.ok) {
-        console.log("Фото успешно обновлено!");
-      } else {
-        const errorData = await response.text();
-        console.error("Ошибка при обновлении фото:", errorData);
-      }
+      await signOut();
+      navigation.navigate("welcome");
     } catch (error) {
-      console.error("Ошибка при загрузке фото:", error);
+      console.error("Ошибка при выходе из профиля:", error);
     }
   };
 
@@ -189,19 +211,19 @@ const GeneralModal: React.FC<GeneralModalProps> = ({ isVisible, onClose }) => {
                   }}
                 />
                 <TouchableOpacity
-                  onPress={selectImage}
-                  style={{
-                    position: "absolute",
-                    bottom: -5,
-                    right: -5,
-                    backgroundColor: "#FFF",
-                    borderRadius: 50,
-                    padding: 5,
-                    elevation: 5,
-                  }}
-                >
-                  <icons.CameraIcon width={24} height={24} color="#FF6C22" />
-                </TouchableOpacity>
+                onPress={handleImageUpload}
+                style={{
+                  position: "absolute",
+                  bottom: -5,
+                  right: -5,
+                  backgroundColor: "#FFF",
+                  borderRadius: 50,
+                  padding: 5,
+                  elevation: 5,
+                }}
+              >
+                <icons.CameraIcon width={24} height={24} color="#FF6C22" />
+              </TouchableOpacity>
               </View>
               <Text style={{ marginTop: 8, fontSize: 18, fontWeight: "bold" }}>
                 {userName}
@@ -243,6 +265,70 @@ const GeneralModal: React.FC<GeneralModalProps> = ({ isVisible, onClose }) => {
                 </Text>
               </View>
             </View>
+
+            <TouchableOpacity
+              style={{
+                marginTop: 40,
+                padding: 15,
+                backgroundColor: "#FF6C22",
+                borderRadius: 10,
+                alignItems: "center",
+              }}
+              onPress={() => setShowSignOutConfirmation(true)}
+            >
+              <Text style={{ color: "white", fontWeight: "bold" }}>Вийти з профіля</Text>
+            </TouchableOpacity>
+
+            {showSignOutConfirmation && (
+              <Modal transparent={true} animationType="fade">
+                <View
+                  style={{
+                    flex: 1,
+                    justifyContent: "center",
+                    alignItems: "center",
+                    backgroundColor: "rgba(0, 0, 0, 0.5)",
+                  }}
+                >
+                  <View
+                    style={{
+                      width: 300,
+                      padding: 20,
+                      backgroundColor: "white",
+                      borderRadius: 10,
+                      alignItems: "center",
+                    }}
+                  >
+                    <Text style={{ fontSize: 16, fontWeight: "bold", marginBottom: 20 }}>
+                      Ви справді бажаєте вийти?
+                    </Text>
+                    <View style={{ flexDirection: "row", justifyContent: "space-around", width: "100%" }}>
+                      <TouchableOpacity
+                        style={{
+                          backgroundColor: "#FF6C22",
+                          padding: 10,
+                          borderRadius: 5,
+                          marginHorizontal: 10,
+                        }}
+                        onPress={handleSignOut}
+                      >
+                        <Text style={{ color: "white", fontWeight: "bold" }}>Так</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={{
+                          backgroundColor: "#F0F0F0",
+                          padding: 10,
+                          borderRadius: 5,
+                          marginHorizontal: 10,
+                        }}
+                        onPress={() => setShowSignOutConfirmation(false)}
+                      >
+                        <Text style={{ fontWeight: "bold" }}>Ні</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              </Modal>
+            )}
           </View>
         </View>
       </Pressable>
@@ -250,4 +336,4 @@ const GeneralModal: React.FC<GeneralModalProps> = ({ isVisible, onClose }) => {
   );
 };
 
-export default GeneralModal;
+export default GeneralModal;  

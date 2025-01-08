@@ -1,25 +1,144 @@
-import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import React, { useEffect, useState } from "react";
+import { Modal, View, Text, TouchableOpacity } from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { useUser } from "@clerk/clerk-expo";
 import { icons } from "@/constants/svg";
 
-const HomeNotificationModal = () => {
+const SERVER_URL = "https://7d72-93-200-239-96.ngrok-free.app";
+
+interface Notification {
+  id: string;
+  receiver_id: string;
+  title: string;
+  body: string;
+  created_at: string;
+}
+
+interface HomeNotificationModalProps {
+  isVisible: boolean;
+  onClose: () => void;
+}
+
+const HomeNotificationModal: React.FC<HomeNotificationModalProps> = ({
+  isVisible,
+  onClose,
+}) => {
   const navigation = useNavigation();
+  const { user } = useUser();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+
+  const fetchNotifications = async () => {
+    if (!user?.id) {
+      console.error("User ID is not available");
+      return;
+    }
+
+    console.log("Fetching notifications for user ID:", user.id);
+    const url = `${SERVER_URL}/api/notifications?receiverId=${user.id}`;
+    console.log("API URL:", url);
+
+    try {
+      const response = await fetch(url);
+      console.log("Response status:", response.status);
+
+      if (response.ok) {
+        const data: Notification[] = await response.json();
+        console.log("Fetched notifications:", data);
+
+        setNotifications(data);
+        console.log("Notifications state updated:", data);
+      } else {
+        const errorText = await response.text();
+        console.error("Error fetching notifications:", errorText);
+      }
+    } catch (error) {
+      console.error("Error during fetch:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (isVisible) {
+      console.log("Modal is visible. Starting to fetch notifications...");
+      fetchNotifications();
+    } else {
+      console.log("Modal is not visible. Skipping fetch.");
+    }
+  }, [isVisible, user]);
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
-      <View className="flex-row items-center p-4">
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <icons.ArrowLeft width={24} height={24} style={{ color: "#000" }} />
-        </TouchableOpacity>
-        <Text className="text-lg font-bold ml-4">Повідомлення</Text>
-      </View>
+    <Modal visible={isVisible} transparent={true} animationType="slide">
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: "rgba(0, 0, 0, 0.5)",
+        }}
+      >
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: "white",
+            paddingHorizontal: 20,
+          }}
+        >
+          <View
+            style={{
+              position: "relative",
+              marginTop: 75,
+              height: 50,
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            <TouchableOpacity
+              style={{
+                position: "absolute",
+                left: 30,
+              }}
+              onPress={() => navigation.goBack()}
+            >
+              <icons.ArrowLeft width={24} height={24} style={{ color: "#000" }} />
+            </TouchableOpacity>
+            <Text
+              style={{
+                fontSize: 22,
+                fontWeight: "bold",
+                textAlign: "center",
+              }}
+            >
+              Повідомлення
+            </Text>
+          </View>
 
-      <View className="flex-1 justify-center items-center">
-        <Text className="text-gray-500 text-center">У вас поки що ще немає повідомлень</Text>
+          <View
+            style={{
+              flex: 1,
+              justifyContent: "center",
+              alignItems: "center",
+            }}
+          >
+            {notifications.length === 0 ? (
+  <Text
+    style={{
+      color: "gray",
+      textAlign: "center",
+    }}
+  >
+    У вас пока что нет уведомлений
+  </Text>
+) : (
+  <View>
+    {notifications.map((notification, index) => (
+      <Text key={index} style={{ color: "black", marginBottom: 10 }}>
+        {JSON.stringify(notification, null, 2)}
+      </Text>
+    ))}
+  </View>
+)}
+
+          </View>
+        </View>
       </View>
-    </SafeAreaView>
+    </Modal>
   );
 };
 

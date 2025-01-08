@@ -22,7 +22,7 @@ interface User {
   name: string;
 }
 
-const SERVER_URL = "https://799d-93-200-239-96.ngrok-free.app";
+const SERVER_URL = "https://7d72-93-200-239-96.ngrok-free.app";
 
 const FriendsModal: React.FC<FriendsModalProps> = ({ isVisible, onClose }) => {
   const [isAddFriendModalVisible, setIsAddFriendModalVisible] = useState(false);
@@ -56,30 +56,39 @@ const FriendsModal: React.FC<FriendsModalProps> = ({ isVisible, onClose }) => {
 
   const sendFriendRequest = async () => {
     try {
+      const payload = {
+        senderId: "CURRENT_USER_ID", 
+        receiverCode: uniqueCode,
+      };
+  
       const response = await fetch(`${SERVER_URL}/api/friends/request`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          senderId: "CURRENT_USER_ID",
-          receiverCode: uniqueCode,
-        }),
+        body: JSON.stringify(payload),
       });
-
-      if (response.ok) {
-        Alert.alert("Успіх", "Запит на дружбу надіслано");
-        setIsAddFriendModalVisible(false);
-        setUniqueCode("");
-        setFoundUser(null);
-      } else {
-        Alert.alert("Помилка", "Не вдалося надіслати запит на дружбу");
+  
+      if (!response.ok) {
+        const errorMessage = await response.text();
+        console.warn("Ошибка сервера:", errorMessage);
+        Alert.alert("Ошибка", "Не удалось отправить запрос на дружбу");
+        return;
       }
+  
+      Alert.alert("Успех", "Запрос на дружбу отправлен");
+      resetModalState();
     } catch (error) {
-      console.error("Помилка надсилання запиту на дружбу:", error);
-      Alert.alert("Помилка", "Не вдалося надіслати запит на дружбу");
+      console.error("Ошибка отправки запроса на дружбу:", error);
+      Alert.alert("Ошибка", "Не удалось отправить запрос на дружбу. Проверьте подключение к сети.");
     }
   };
+  
+  const resetModalState = () => {
+    setIsAddFriendModalVisible(false);
+    setUniqueCode("");
+    setFoundUser(null);
+  };  
 
   return (
     <Modal visible={isVisible} transparent={true} animationType="slide">

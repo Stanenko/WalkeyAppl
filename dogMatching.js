@@ -103,7 +103,6 @@ class Dog {
 const calculate_geographic_distance = (dog1, dog2) => {
     const toRadians = (degrees) => degrees * (Math.PI / 180);
 
-    // Проверка и логирование некорректных данных
     if (
         isNaN(dog1.latitude) || isNaN(dog1.longitude) ||
         isNaN(dog2.latitude) || isNaN(dog2.longitude) ||
@@ -116,7 +115,7 @@ const calculate_geographic_distance = (dog1, dog2) => {
             dog1: { latitude: dog1.latitude, longitude: dog1.longitude },
             dog2: { latitude: dog2.latitude, longitude: dog2.longitude },
         });
-        return Infinity; // Если координаты неверны, расстояние бесконечно
+        return Infinity;
     }
 
     const lat1 = toRadians(dog1.latitude);
@@ -124,7 +123,7 @@ const calculate_geographic_distance = (dog1, dog2) => {
     const lat2 = toRadians(dog2.latitude);
     const lon2 = toRadians(dog2.longitude);
 
-    const R = 6371; // Радиус Земли в километрах
+    const R = 6371; 
     const dLat = lat2 - lat1;
     const dLon = lon2 - lon1;
 
@@ -134,7 +133,6 @@ const calculate_geographic_distance = (dog1, dog2) => {
 
     return R * c;
 };
-
 
 const match_dogs = (target_dog, dogs, radius_km = 500) => {
     const matches = [];
@@ -147,7 +145,12 @@ const match_dogs = (target_dog, dogs, radius_km = 500) => {
     for (const dog of dogs) {
         if (dog.dog_id === target_dog.dog_id) continue;
 
-        const distance = calculate_geographic_distance(target_dog, dog);
+        console.log("Dog1 (target_dog):", target_dog, "Dog2 (current dog):", dog);
+
+        const distance = calculate_geographic_distance(
+            { latitude: target_dog.latitude, longitude: target_dog.longitude },
+            { latitude: dog.latitude, longitude: dog.longitude }
+        );
 
         if (distance > radius_km) {
             console.warn(`Собака ${dog.name} вне радиуса: ${distance.toFixed(2)} км`);

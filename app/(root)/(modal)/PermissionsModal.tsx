@@ -32,11 +32,9 @@ const PermissionsModal: React.FC<PermissionsModalProps> = ({ isVisible, onClose 
 
   const checkPermissions = async () => {
     try {
-      // Проверка разрешений на локацию
       const locationStatus = await Location.getForegroundPermissionsAsync();
       setLocationPermission(locationStatus.status === "granted");
 
-      // Проверка разрешений на камеру
       const cameraStatus = await Camera.getCameraPermissionsAsync();
       setCameraPermission(cameraStatus.status === "granted");
     } catch (error) {

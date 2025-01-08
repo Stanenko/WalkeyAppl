@@ -3,29 +3,38 @@ const { neon } = require('@neondatabase/serverless');
 require('dotenv').config();
 const { Dog, calculate_geographic_distance, match_dogs } = require('./dogMatching');
 const multer = require('multer');
-
+const { Expo } = require('expo-server-sdk');
+const admin = require("./firebaseAdmin");
+const bucket = admin.storage().bucket();
+const upload = multer({ storage: multer.memoryStorage() });
 const path = require('path');
-
-
-const app = express();
-app.use(express.json());
-
 const cors = require('cors');
+const http = require('http');
+
+const sql = neon(process.env.DATABASE_URL);
+const expo = new Expo();
+const app = express();
+
+app.use(express.json());
 app.use(cors({
   origin: "*", 
   methods: ["GET", "POST", "PATCH", "OPTIONS"],
 }));
 
+const fixFirebaseUrl = (url) => {
+  if (!url || typeof url !== 'string') {
+    return url;
+  }
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, path.join(__dirname, 'images')); 
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = `${Date.now()}-${file.originalname}`;
-    cb(null, uniqueName); 
-  },
-});
+  if (!url.startsWith("https://storage.googleapis.com")) {
+    return url;
+  }
+
+  const bucketName = "walkeyapp.firebasestorage.app";
+  const path = url.replace(`https://storage.googleapis.com/${bucketName}/`, "");
+  return `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodeURIComponent(path)}?alt=media`;
+};
+
 
 const generateUniqueCode = async () => {
   let isUnique = false;
@@ -46,12 +55,66 @@ const generateUniqueCode = async () => {
   return code;
 };
 
-const upload = multer({ storage });
+app.post("/api/upload", upload.single("file"), async (req, res) => {
+  const { clerkId } = req.body; 
+  if (!clerkId || !req.file) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
 
-app.use('/images', express.static(path.join(__dirname, 'images')));
+  try {
+    const fileName = `${clerkId}/${Date.now()}_${req.file.originalname}`;
+    const file = bucket.file(fileName);
 
+    const stream = file.createWriteStream({
+      metadata: {
+        contentType: req.file.mimetype,
+      },
+    });
 
-const sql = neon(process.env.DATABASE_URL);
+    stream.on("error", (err) => {
+      console.error("Upload error:", err);
+      res.status(500).json({ error: "Upload failed" });
+    });
+
+    stream.on("finish", async () => {
+      const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+
+      await sql`
+        UPDATE users SET image = ${publicUrl} WHERE clerk_id = ${clerkId};
+      `;
+
+      res.status(200).json({ success: true, url: publicUrl });
+    });
+
+    stream.end(req.file.buffer);
+  } catch (error) {
+    console.error("Error uploading file:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+app.get("/api/user/image", async (req, res) => {
+  const { clerkId } = req.query;
+
+  if (!clerkId) {
+    return res.status(400).json({ error: "clerkId is required" });
+  }
+
+  try {
+    const user = await sql`
+      SELECT image FROM users WHERE clerk_id = ${clerkId};
+    `;
+
+    if (!user.length || !user[0].image) {
+      return res.status(404).json({ error: "Image not found" });
+    }
+
+    res.status(200).json({ imageUrl: user[0].image });
+  } catch (error) {
+    console.error("Error fetching image:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+});
 
 app.get("/api/test", (req, res) => {
   res.json({ message: "Локальный сервер работает!" });
@@ -94,23 +157,32 @@ app.get('/api/dogs/user', async (req, res) => {
   const { clerkId } = req.query;
 
   if (!clerkId) {
-      return res.status(400).json({ error: 'clerkId is required' });
+    return res.status(400).json({ error: 'clerkId is required' });
   }
 
   try {
-      const dogs = await sql`
-          SELECT * FROM dogs
-          WHERE clerk_id = ${clerkId};
-      `;
+    const dogs = await sql`
+      SELECT * FROM dogs
+      WHERE clerk_id = ${clerkId};
+    `;
 
-      if (dogs.length === 0) {
-          return res.status(404).json({ error: 'No dogs found for the current user' });
-      }
+    if (dogs.length === 0) {
+      return res.status(404).json({ error: 'No dogs found for the current user' });
+    }
 
-      res.status(200).json(dogs);
+    const user = await sql`
+      SELECT image FROM users WHERE clerk_id = ${clerkId};
+    `;
+
+    const updatedDogs = dogs.map((dog) => ({
+      ...dog,
+      image: user[0]?.image || null, 
+    }));
+
+    res.status(200).json(updatedDogs);
   } catch (error) {
-      console.error('Error fetching dogs:', error);
-      res.status(500).json({ error: 'Internal Server Error' });
+    console.error('Error fetching dogs:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
@@ -218,6 +290,8 @@ app.get('/api/user', async (req, res) => {
       return res.status(404).json({ error: 'Пользователь не найден' });
     }
 
+    user[0].image = fixFirebaseUrl(user[0].image);
+
     res.status(200).json(user[0]);
   } catch (error) {
     console.error('Ошибка при получении пользователя:', error);
@@ -249,22 +323,6 @@ app.patch('/api/user', async (req, res) => {
     console.error('Error updating birth date:', error);
     res.status(500).json({ error: 'Internal Server Error' });
   }
-});
-
-app.post('/api/upload', (req, res) => {
-  const { clerkId, imageBase64 } = req.body;
-
-  if (!clerkId || !imageBase64) {
-    return res.status(400).json({ error: 'Недостаточно данных' });
-  }
-
-  sql`
-    UPDATE users
-    SET image = ${imageBase64}
-    WHERE clerk_id = ${clerkId}
-  `
-    .then(() => res.status(200).json({ success: true }))
-    .catch((err) => res.status(500).json({ error: 'Ошибка сохранения изображения' }));
 });
 
 
@@ -321,6 +379,31 @@ app.patch('/api/user/location', async (req, res) => {
   }
 });
 
+app.get('/api/user/location', async (req, res) => {
+  const { clerkId } = req.query;
+
+  if (!clerkId) {
+    return res.status(400).json({ error: 'clerkId is required' });
+  }
+
+  try {
+    const location = await sql`
+      SELECT latitude, longitude 
+      FROM user_locations 
+      WHERE clerk_id = ${clerkId};
+    `;
+
+    if (location.length === 0) {
+      return res.status(404).json({ error: 'User location not found' });
+    }
+
+    res.status(200).json(location[0]);
+  } catch (error) {
+    console.error('Ошибка при получении местоположения пользователя:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 app.get('/api/users/locations', async (req, res) => {
 const { clerkId, breed, maxAge, minAge, gender } = req.query;
 
@@ -345,7 +428,7 @@ try {
 
   const userLocation = userLocationQuery[0];
   const dogsQuery = await sql`
-  SELECT d.breed, d.age, ul.latitude, ul.longitude, u.gender, u.name,
+  SELECT d.breed, d.age, ul.latitude, ul.longitude, u.gender, u.name, u.image,
          earth_distance(ll_to_earth(${userLocation.latitude}, ${userLocation.longitude}),
                         ll_to_earth(ul.latitude, ul.longitude)) AS distance
   FROM dogs d
@@ -534,6 +617,138 @@ app.delete('/api/walks/:id', async (req, res) => {
   }
 });
   
+app.post('/api/save-token', async (req, res) => {
+  const { clerkId, pushToken } = req.body;
+
+  if (!clerkId || !pushToken) {
+    return res.status(400).json({ error: 'Missing clerkId or pushToken' });
+  }
+
+  try {
+    console.log(`Received clerkId: ${clerkId}`);
+    console.log(`Executing SQL query for clerkId: ${clerkId}`);
+
+    await sql`
+      INSERT INTO user_tokens (clerk_id, fcm_token)
+      VALUES (${clerkId}, ${pushToken})
+      ON CONFLICT (clerk_id)
+      DO UPDATE SET fcm_token = ${pushToken};
+    `;
+
+    res.status(200).json({ success: true, message: 'Токен успешно сохранен' });
+  } catch (error) {
+    console.error('Ошибка сохранения Push-токена:', error);
+    res.status(500).json({ error: 'Не удалось сохранить токен' });
+  }
+});
+
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert(require("./serviceAccountKey.json")),
+  });
+}
+
+app.post("/api/friends/request", async (req, res) => {
+  const { senderId, receiverCode } = req.body;
+
+  if (!senderId || !receiverCode) {
+    return res.status(400).json({ error: "Отправитель и код получателя обязательны" });
+  }
+
+  try {
+    const receiver = await sql`
+      SELECT u.name AS receiver_name, ut.fcm_token, u.clerk_id
+      FROM users u
+      JOIN user_tokens ut ON u.clerk_id = ut.clerk_id
+      WHERE u.unique_code = ${receiverCode};
+    `;
+
+    if (receiver.length === 0) {
+      return res.status(404).json({ error: "Пользователь с таким кодом не найден" });
+    }
+
+    const { receiver_name, fcm_token, clerk_id: receiverId } = receiver[0];
+
+    const sender = await sql`
+      SELECT name FROM users WHERE clerk_id = ${senderId};
+    `;
+
+    if (sender.length === 0) {
+      return res.status(404).json({ error: "Отправитель не найден" });
+    }
+
+    const senderName = sender[0].name;
+
+    const message = {
+      to: fcm_token,
+      sound: "default",
+      title: "Запит у друзі",
+      body: `${senderName} хоче додати вас у друзі`,
+      data: { senderId, type: "friend_request" },
+    };
+
+    const tickets = await expo.sendPushNotificationsAsync([message]);
+    console.log("Уведомление отправлено:", tickets);
+
+    await sql`
+      INSERT INTO notifications (receiver_id, sender_id, title, body, created_at)
+      VALUES (${receiverId}, ${senderId}, ${message.title}, ${message.body}, NOW());
+    `;
+
+    res.status(200).json({ success: true, message: "Уведомление отправлено" });
+  } catch (error) {
+    console.error("Ошибка отправки уведомления:", error);
+    res.status(500).json({ error: "Не удалось отправить уведомление" });
+  }
+});
+
+app.post('/send-notification', async (req, res) => {
+  const { to, title, body } = req.body;
+
+  if (!Expo.isExpoPushToken(to)) {
+      return res.status(400).json({ error: 'Invalid Expo push token' });
+  }
+
+  const messages = [{
+    to: to,
+    sound: 'default',
+    title: title, 
+    body: body,   
+    data: { someData: 'goes here' },
+}];
+
+  try {
+      const ticket = await expo.sendPushNotificationsAsync(messages);
+      console.log('Notification sent:', ticket);
+      res.status(200).json({ success: true, ticket });
+  } catch (error) {
+      console.error('Error sending notification:', error);
+      res.status(500).json({ error: 'Failed to send notification', details: error });
+  }
+});
+
+app.get("/api/notifications", async (req, res) => {
+  const { receiverId } = req.query;
+  console.log("Received receiverId:", receiverId);
+
+  if (!receiverId) {
+    return res.status(400).json({ error: "Не указан receiverId" });
+  }
+
+  try {
+    const notifications = await sql`
+      SELECT * FROM notifications
+      WHERE receiver_id = ${receiverId}
+      ORDER BY created_at DESC;
+    `;
+
+    res.status(200).json(notifications);
+  } catch (error) {
+    console.error("Ошибка получения уведомлений:", error);
+    res.status(500).json({ error: "Не удалось получить уведомления" });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
