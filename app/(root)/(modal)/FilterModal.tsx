@@ -23,6 +23,8 @@ interface FilterModalProps {
     activityLevel?: string;
     emotionalStatus?: string;
     vaccinationStatus?: string;
+    excludedBreed?: string;
+    gender?: string;
   };
   handleFilterChange: (key: string, value: string) => void;
 }
@@ -36,17 +38,13 @@ const FilterModal: React.FC<FilterModalProps> = ({
 }) => {
   const [breeds, setBreeds] = useState<string[]>([]);
   const [breedQuery, setBreedQuery] = useState<string>("");
-  const [filteredBreeds, setFilteredBreeds] = useState<string[]>([]);
-  const [selectedBreed, setSelectedBreed] = useState<string>(
-    filters?.breed || ""
-  );
+  const [excludedBreedQuery, setExcludedBreedQuery] = useState<string>("");
+  const [selectedBreed, setSelectedBreed] = useState<string>(filters?.breed || "");
+  const [excludedBreed, setExcludedBreed] = useState<string>(filters?.excludedBreed || "");
   const [minAge, setMinAge] = useState<string>(filters?.minAge || "");
   const [maxAge, setMaxAge] = useState<string>(filters?.maxAge || "");
   const [activityLevel, setActivityLevel] = useState<string>(
     filters?.activityLevel || ""
-  );
-  const [emotionalStatus, setEmotionalStatus] = useState<string>(
-    filters?.emotionalStatus || ""
   );
   const [vaccinationStatus, setVaccinationStatus] = useState<string>(
     filters?.vaccinationStatus || ""
@@ -54,8 +52,12 @@ const FilterModal: React.FC<FilterModalProps> = ({
 
   const [isBreedFilterOpen, setIsBreedFilterOpen] = useState<boolean>(false);
   const [isAgeFilterOpen, setIsAgeFilterOpen] = useState<boolean>(false);
-  const [excludedBreedQuery, setExcludedBreedQuery] = useState<string>("");
-  const [excludedBreed, setExcludedBreed] = useState<string>("");
+  const [filteredBreeds, setFilteredBreeds] = useState<string[]>([]);
+  const [genderFilter, setGenderFilter] = useState<{ male: boolean; female: boolean }>({
+    male: false,
+    female: false,
+  });
+  
 
   useEffect(() => {
     const loadBreeds = async () => {
@@ -66,8 +68,40 @@ const FilterModal: React.FC<FilterModalProps> = ({
     loadBreeds();
   }, []);
 
+  useEffect(() => {
+    const allEmpty = !filters.breed && !filters.excludedBreed
+      && !filters.minAge && !filters.maxAge
+      && !filters.activityLevel && !filters.vaccinationStatus
+      && !filters.gender;
+  
+    if (allEmpty) {
+      setBreedQuery("");
+      setExcludedBreedQuery("");
+      setSelectedBreed("");
+      setExcludedBreed("");
+      setMinAge("");
+      setMaxAge("");
+      setActivityLevel("");
+      setVaccinationStatus("");
+      setGenderFilter({ male: false, female: false });
+    }
+  }, [filters]);
+  
+  const resetGenderFilter = () => {
+    setGenderFilter({ male: false, female: false }); 
+    handleFilterChange("gender", ""); 
+  };
+  
+
   const handleBreedSearch = (text: string) => {
     setBreedQuery(text);
+
+    if (!text) {
+      setSelectedBreed("");
+      handleFilterChange("breed", "");
+      setFilteredBreeds(breeds);
+      return;
+    }
     const filtered = breeds.filter((breed) =>
       breed.toLowerCase().includes(text.toLowerCase())
     );
@@ -76,13 +110,20 @@ const FilterModal: React.FC<FilterModalProps> = ({
 
   const handleBreedSelect = (breed: string) => {
     setSelectedBreed(breed);
+    setBreedQuery(breed);
     handleFilterChange("breed", breed);
-    setBreedQuery("");
     setFilteredBreeds([]);
   };
 
   const handleExcludedBreedSearch = (text: string) => {
     setExcludedBreedQuery(text);
+
+    if (!text) {
+      setExcludedBreed("");
+      handleFilterChange("excludedBreed", "");
+      setFilteredBreeds(breeds);
+      return;
+    }
     const filtered = breeds.filter((breed) =>
       breed.toLowerCase().includes(text.toLowerCase())
     );
@@ -91,46 +132,57 @@ const FilterModal: React.FC<FilterModalProps> = ({
 
   const handleExcludedBreedSelect = (breed: string) => {
     setExcludedBreed(breed);
+    setExcludedBreedQuery(breed);
     handleFilterChange("excludedBreed", breed);
-    setExcludedBreedQuery("");
     setFilteredBreeds([]);
   };
 
+  const handleActivityLevelChange = (text: string) => {
+    setActivityLevel(text); 
+    handleFilterChange("activityLevel", text);
+  };
+
+  const handleVaccinationStatusChange = (text: string) => {
+    setVaccinationStatus(text);
+    handleFilterChange("vaccinationStatus", text);
+  };
+
+  const handleGenderChange = (gender: "male" | "female") => {
+    setGenderFilter((prev) => {
+      const updatedGender = { ...prev, [gender]: !prev[gender] };
+  
+      const selectedGenders = Object.entries(updatedGender)
+        .filter(([_, value]) => value)
+        .map(([key]) => key);
+  
+      if (selectedGenders.length === 2) {
+        handleFilterChange("gender", "all"); 
+      } else {
+        handleFilterChange("gender", selectedGenders.length ? selectedGenders.join(",") : "");
+      }
+  
+      return updatedGender;
+    });
+  };  
+   
   return (
     <Modal visible={visible} animationType="slide" transparent={false}>
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: "white",
-        }}
-      >
-        {/* Шапка */}
+      <View style={{ flex: 1, backgroundColor: "white" }}>
         <View
           style={{
             position: "relative",
-            marginTop: 75, // Отступ сверху для шапки
+            marginTop: 75,
             height: 50,
             justifyContent: "center",
             alignItems: "center",
           }}
         >
-          <Text
-            style={{
-              fontSize: 22,
-              fontWeight: "bold",
-              textAlign: "center",
-            }}
-          >
+          <Text style={{ fontSize: 22, fontWeight: "bold", textAlign: "center" }}>
             Фільтрувати
           </Text>
         </View>
 
-        <View
-          style={{
-            padding: 20,
-            marginTop: 15,
-          }}
-        >
+        <View style={{ padding: 20, marginTop: 15 }}>
           <TouchableOpacity
             onPress={() => setIsBreedFilterOpen(!isBreedFilterOpen)}
             style={{
@@ -142,13 +194,15 @@ const FilterModal: React.FC<FilterModalProps> = ({
               marginBottom: 10,
             }}
           >
-            <Text style={{ color: "black", textAlign: "center" }}>Порода собак</Text>
+            <Text style={{ color: "black", textAlign: "center" }}>
+              Порода собак
+            </Text>
           </TouchableOpacity>
 
           {isBreedFilterOpen && (
             <View>
               <TextInput
-                value={breedQuery || selectedBreed}
+                value={breedQuery}
                 onChangeText={handleBreedSearch}
                 placeholder="Почніть вводити породу"
                 style={{
@@ -178,11 +232,12 @@ const FilterModal: React.FC<FilterModalProps> = ({
                   style={{ maxHeight: 150 }}
                 />
               )}
+
               <Text style={{ color: "black", marginTop: 10, marginBottom: 10 }}>
                 Показати всі окрім породи:
               </Text>
               <TextInput
-                value={excludedBreedQuery || excludedBreed}
+                value={excludedBreedQuery}
                 onChangeText={handleExcludedBreedSearch}
                 placeholder="Введіть породу для виключення"
                 style={{
@@ -226,7 +281,9 @@ const FilterModal: React.FC<FilterModalProps> = ({
               marginBottom: 20,
             }}
           >
-            <Text style={{ color: "black", textAlign: "center" }}>Вік у роках</Text>
+            <Text style={{ color: "black", textAlign: "center" }}>
+              Вік у роках
+            </Text>
           </TouchableOpacity>
 
           {isAgeFilterOpen && (
@@ -277,26 +334,48 @@ const FilterModal: React.FC<FilterModalProps> = ({
             </View>
           )}
 
+<View style={{ flexDirection: "row", alignItems: "center", marginBottom: 15 }}>
+  <Text style={{ marginRight: 30 }}>Стать:</Text>
+
+  <TouchableOpacity onPress={() => handleGenderChange("male")} style={{ flexDirection: "row", alignItems: "center", marginRight: 30 }}>
+    <View
+      style={{
+        width: 20,
+        height: 20,
+        borderRadius: 5,
+        borderWidth: 1,
+        borderColor: "gray",
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: genderFilter.male ? "#FF6C22" : "white",
+      }}
+    />
+    <Text style={{ marginLeft: 8 }}>Хлопчик</Text>
+  </TouchableOpacity>
+
+  <TouchableOpacity onPress={() => handleGenderChange("female")} style={{ flexDirection: "row", alignItems: "center" }}>
+    <View
+      style={{
+        width: 20,
+        height: 20,
+        borderRadius: 5,
+        borderWidth: 1,
+        borderColor: "gray",
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: genderFilter.female ? "#FF6C22" : "white",
+      }}
+    />
+    <Text style={{ marginLeft: 8 }}>Дівчинка</Text>
+  </TouchableOpacity>
+</View>
+
+
           <Text style={{ marginBottom: 10 }}>Рівень активності:</Text>
           <TextInput
             value={activityLevel}
-            onChangeText={(text) => handleFilterChange("activityLevel", text)}
+            onChangeText={handleActivityLevelChange}
             placeholder="Активність (1-10)"
-            keyboardType="numeric"
-            style={{
-              borderWidth: 1,
-              borderColor: "gray",
-              borderRadius: 8,
-              padding: 8,
-              marginBottom: 10,
-            }}
-          />
-
-          <Text style={{ marginBottom: 10 }}>Емоційний стан:</Text>
-          <TextInput
-            value={emotionalStatus}
-            onChangeText={(text) => handleFilterChange("emotionalStatus", text)}
-            placeholder="Емоційний стан (1-10)"
             keyboardType="numeric"
             style={{
               borderWidth: 1,
@@ -310,9 +389,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
           <Text style={{ marginBottom: 10 }}>Статус вакцинації:</Text>
           <TextInput
             value={vaccinationStatus}
-            onChangeText={(text) =>
-              handleFilterChange("vaccinationStatus", text)
-            }
+            onChangeText={handleVaccinationStatusChange}
             placeholder="Вакцинація (повна/часткова)"
             style={{
               borderWidth: 1,
@@ -324,8 +401,8 @@ const FilterModal: React.FC<FilterModalProps> = ({
           />
 
           <TouchableOpacity
-            onPress={() => {
-              applyFilters();
+            onPress={async () => {
+              await applyFilters();
               toggleFilterModal();
             }}
             style={{
@@ -337,7 +414,9 @@ const FilterModal: React.FC<FilterModalProps> = ({
               marginBottom: 20,
             }}
           >
-            <Text style={{ color: "white", textAlign: "center" }}>Застосувати фільтри</Text>
+            <Text style={{ color: "white", textAlign: "center" }}>
+              Застосувати фільтри
+            </Text>
           </TouchableOpacity>
 
           <TouchableOpacity

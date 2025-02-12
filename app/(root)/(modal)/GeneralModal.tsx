@@ -16,9 +16,9 @@ import { icons } from "@/constants/svg";
 import { useNavigation } from "@react-navigation/native";
 import { uploadImageToFirebase } from "@/utils/firebaseStorageUtils";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { router } from "expo-router"; // ✅ Импортируем router из expo-router
 
-
-const SERVER_URL = "https://7d72-93-200-239-96.ngrok-free.app";
+const SERVER_URL = "http://192.168.0.18:3000";
 
 type RootStackParamList = {
   welcome: undefined;
@@ -41,25 +41,33 @@ const GeneralModal: React.FC<GeneralModalProps> = ({ isVisible, onClose }) => {
   const [loading, setLoading] = useState(true);
   const [showSignOutConfirmation, setShowSignOutConfirmation] = useState(false);
   const navigation = useNavigation<NavigationProp>();
+  const [breed, setBreed] = useState<string>("");
 
-    useEffect(() => {
-      const fetchUserData = async () => {
-        if (!user || !user.id) return;
-    
-        try {
-          const response = await fetch(`${SERVER_URL}/api/user?clerkId=${user.id}`);
-          const data = await response.json();
-          console.log("Полученные данные пользователя:", data);
-          setImage(data.image || "https://via.placeholder.com/150");
-        } catch (error) {
-          console.error("Ошибка при загрузке данных пользователя:", error);
-        } finally {
-          setLoading(false);
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!user || !user.id) return;
+  
+      try {
+        const response = await fetch(`${SERVER_URL}/api/user?clerkId=${user.id}`);
+        const data = await response.json();
+        console.log("Полученные данные пользователя:", data);
+  
+        setUserName(data.name);
+        setEmail(data.email);
+        setBreed(data.breed);
+        
+        if (data.image) {
+          setImage(data.image);
         }
-      };
-    
-      fetchUserData();
-    }, [user]);    
+      } catch (error) {
+        console.error("Ошибка при загрузке данных пользователя:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+  
+    fetchUserData();
+  }, [user]);  
 
   const updateBirthDate = async (newDate: string) => {
     try {
@@ -101,6 +109,8 @@ const GeneralModal: React.FC<GeneralModalProps> = ({ isVisible, onClose }) => {
   
     if (!pickerResult.canceled) {
       const imageUri = pickerResult.assets[0].uri;
+      
+      setImage(imageUri);
   
       try {
         const formData = new FormData();
@@ -125,6 +135,7 @@ const GeneralModal: React.FC<GeneralModalProps> = ({ isVisible, onClose }) => {
         if (response.ok) {
           const result = await response.json();
           console.log("Фото загружено. URL:", result.url);
+  
           setImage(result.url);
           Alert.alert("Успешно", "Фото успешно загружено!");
         } else {
@@ -143,11 +154,17 @@ const GeneralModal: React.FC<GeneralModalProps> = ({ isVisible, onClose }) => {
     setShowSignOutConfirmation(false);
     try {
       await signOut();
-      navigation.navigate("welcome");
+  
+      router.replace("/(auth)/welcome"); 
+      
+      setTimeout(() => {
+        onClose(); 
+      }, 100);
     } catch (error) {
       console.error("Ошибка при выходе из профиля:", error);
     }
   };
+  
 
   if (loading) {
     return (
@@ -200,36 +217,38 @@ const GeneralModal: React.FC<GeneralModalProps> = ({ isVisible, onClose }) => {
           </View>
 
           <View style={{ padding: 20 }}>
-            <View style={{ alignItems: "center", marginTop: 20 }}>
-              <View style={{ position: "relative" }}>
-                <Image
-                  source={{ uri: image || "https://via.placeholder.com/150" }}
-                  style={{
-                    width: 96,
-                    height: 96,
-                    borderRadius: 48,
-                  }}
-                />
-                <TouchableOpacity
-                onPress={handleImageUpload}
-                style={{
-                  position: "absolute",
-                  bottom: -5,
-                  right: -5,
-                  backgroundColor: "#FFF",
-                  borderRadius: 50,
-                  padding: 5,
-                  elevation: 5,
-                }}
-              >
-                <icons.CameraIcon width={24} height={24} color="#FF6C22" />
-              </TouchableOpacity>
-              </View>
-              <Text style={{ marginTop: 8, fontSize: 18, fontWeight: "bold" }}>
-                {userName}
-              </Text>
-              <Text style={{ color: "#6B7280" }}>мопс</Text>
-            </View>
+          <View style={{ alignItems: "center", marginTop: 20 }}>
+  <View style={{ position: "relative" }}>
+    <Image
+      source={{ uri: image || "https://via.placeholder.com/150" }}
+      style={{
+        width: 96,
+        height: 96,
+        borderRadius: 48,
+        backgroundColor: "lightgray", 
+      }}
+    />
+    <TouchableOpacity
+      onPress={handleImageUpload}
+      style={{
+        position: "absolute",
+        bottom: -5,
+        right: -5,
+        backgroundColor: "#FFF",
+        borderRadius: 50,
+        padding: 5,
+        elevation: 5,
+      }}
+    >
+      <icons.CameraIcon width={24} height={24} color="#FF6C22" />
+    </TouchableOpacity>
+  </View>
+  <Text style={{ marginTop: 8, fontSize: 18, fontWeight: "bold" }}>
+    {userName}
+  </Text>
+  <Text style={{ color: "#6B7280" }}>{breed}</Text>
+</View>
+
 
             <View style={{ marginTop: 40 }}>
               <Text style={{ fontSize: 16, fontWeight: "bold", marginBottom: 20 }}>Дата народження</Text>

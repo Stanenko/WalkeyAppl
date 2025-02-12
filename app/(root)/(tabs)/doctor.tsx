@@ -15,11 +15,12 @@ type MedicalRecord = {
   type: 'vaccination' | 'protection';
 };
 
-const SERVER_URL = "https://7d72-93-200-239-96.ngrok-free.app";
+const SERVER_URL = "http://192.168.0.18:3000";
+
 
 const Doctor = () => {
   const [isSterilized, setIsSterilized] = useState(true);
-  const [gender, setGender] = useState<'male' | 'female'>('female');
+  const [gender, setGender] = useState<'male' | 'female' | null>(null);
   const [isInHeat, setIsInHeat] = useState(false);
   const [vaccinations, setVaccinations] = useState<MedicalRecord[]>([]);
   const [protections, setProtections] = useState<MedicalRecord[]>([]);
@@ -36,6 +37,28 @@ const Doctor = () => {
     }
   }, [user]);
 
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!user || !user.id) return;
+  
+      try {
+        const response = await fetch(`${SERVER_URL}/api/user?clerkId=${user.id}`);
+        const data = await response.json();
+  
+        console.log("Данные из API:", data);
+  
+        if (data.gender) {
+          const normalizedGender = data.gender.toLowerCase().trim();
+          setGender(normalizedGender === "male" ? "male" : "female");
+        }
+      } catch (error) {
+        console.error("Ошибка загрузки данных пользователя:", error);
+      }
+    };
+  
+    fetchUserData();
+  }, [user]);
+  
   const fetchMedicalRecords = async (
     type: 'vaccination' | 'protection',
     setLoading: React.Dispatch<React.SetStateAction<boolean>>,
@@ -129,6 +152,7 @@ const Doctor = () => {
       </View>
     );
   };
+  console.log("Gender в SterilizationToggle:", gender);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: 'white', paddingHorizontal: 20 }}>
@@ -136,7 +160,7 @@ const Doctor = () => {
       <SterilizationToggle
         isSterilized={isSterilized}
         setIsSterilized={setIsSterilized}
-        gender={gender}
+        gender={gender ?? "female"} 
         isInHeat={isInHeat}
         setIsInHeat={setIsInHeat}
       />

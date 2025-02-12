@@ -14,8 +14,9 @@ import CreateWalkModal from "@/app/(root)/(modal)/CreateWalkModal";
 import * as Clipboard from 'expo-clipboard';
 import { useToggleStore } from "@/store/toggleStore";
 import useFetchDogs from "@/hooks/useFetchDogs";
+import { useMatchingStore } from '@/store/matchingStore';
 
-const SERVER_URL = "https://7d72-93-200-239-96.ngrok-free.app";
+const SERVER_URL = "http://192.168.0.18:3000";
 
 const fetchDataFromAPI = async (url: string, errorMessage: string): Promise<any> => {
   try {
@@ -147,7 +148,7 @@ const DogList: React.FC<DogListProps> = ({ dogs, onDogSelect }) => {
       {dogs.map((dog: DogInterface, index: number) => (
         <TouchableOpacity
           key={dog.dog_id || `${dog.name}_${index}`}
-          onPress={() => onDogSelect(dog)}
+          onPress={() => onDogSelect({ ...dog, status: dog.status || "вдома", similarity_percentage: dog.similarity_percentage || 0 })}
           className="bg-[#FFF7F2] rounded-lg p-4"
           style={{
             width: 240,
@@ -413,6 +414,7 @@ const Home = () => {
   const [notification, setNotification] = useState({ isVisible: false, message: '' });
   const [fadeAnim] = useState(new Animated.Value(0));
   const [isWalkModalVisible, setWalkModalVisible] = useState(false);
+  const [isLoadingUser, setIsLoadingUser] = useState(true);
 
   useEffect(() => {
     console.log("Clerk ID:", user?.id);
@@ -435,6 +437,8 @@ const Home = () => {
     }, 3000);
   };
 
+  const { setMatching } = useMatchingStore(); 
+
   const onDogSelect = (dog: DogInterface) => {
     setSelectedDog({
       image: dog.image || null,
@@ -446,6 +450,10 @@ const Home = () => {
       age: dog.age || 0, 
       walkingPlace: dog.walkingPlace || "Не указано",
     });
+    if (dog.dog_id && dog.similarity_percentage !== undefined) {
+      setMatching(dog.dog_id, dog.similarity_percentage);
+    }
+    setSelectedDog(dog);
     setModalVisible(true); 
   };
   
@@ -453,6 +461,7 @@ const Home = () => {
     if (!user || !user.id) return;
   
     try {
+      setIsLoadingUser(true); 
       const userData = await fetchDataFromAPI(
         `${SERVER_URL}/api/user?clerkId=${user.id}`,
         "Error fetching user data"
@@ -478,10 +487,31 @@ const Home = () => {
       }
     } catch (error) {
       console.error("Error fetching user or dog data:", error);
+    } finally {
+      setIsLoadingUser(false); 
     }
   };
-  
 
+  useEffect(() => {
+    if (user?.id) {
+      fetchUserData();
+    }
+  }, [user?.id]);
+  
+  const toggleStatus = async () => {
+    try {
+      const newStatus = isToggled ? 'вдома' : 'гуляє';
+      setIsToggled(!isToggled);
+  
+      await fetch(`${SERVER_URL}/api/dogs/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clerkId: user?.id, status: newStatus }),
+      });
+    } catch (error) {
+      console.error('Ошибка обновления статуса:', error);
+    }
+  };  
 
   const formatUniqueCode = (code: string | undefined): string => {
     if (!code) return "0000 0000 0000 0000";

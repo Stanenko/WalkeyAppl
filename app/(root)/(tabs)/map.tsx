@@ -1,6 +1,6 @@
 import { View, Switch, Image, Text, Button, TouchableOpacity, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { icons } from "@/constants/svg";
 import * as Location from "expo-location";
 import NetInfo from "@react-native-community/netinfo";
@@ -10,11 +10,25 @@ import { useLocationStore } from "@/store/index";
 import { useUser } from "@clerk/clerk-expo";
 import FilterModal from "@/app/(root)/(modal)/FilterModal";
 import DogProfileModal from "@/app/(root)/(modal)/DogProfile";
-import MapView, { Marker, PROVIDER_DEFAULT } from "react-native-maps";
+import MapView, { Marker, PROVIDER_DEFAULT, Region } from "react-native-maps";
 import { useToggleStore } from "@/store/toggleStore";
+import { useMatchingStore } from "@/store/matchingStore";
+import useFetchDogs from "@/hooks/useFetchDogs";
 
+const SERVER_URL = "http://192.168.0.18:3000";
 
-const SERVER_URL = "https://7d72-93-200-239-96.ngrok-free.app";
+interface DogInterface {
+  dog_id: string;
+  name: string;
+  breed: string;
+  gender: "male" | "female";
+  age: number | null;
+  latitude: number;
+  longitude: number;
+  image?: string;
+  similarity_percentage?: number;
+  status?: string;
+}
 
 type UpdateLocationParams = {
   latitude: number;
@@ -74,14 +88,22 @@ const fetchWithTimeout = async (
     throw error;
   }
 };
-
-const fetchOtherUsersLocations = async (clerkId: string, filters: Filters = {}): Promise<any[]> => {
+//Змінила від
+const fetchOtherUsersLocations = async (clerkId: string, filters: Filters = {}): Promise<DogInterface[]> => {
   try {
-    const queryParams = new URLSearchParams(filters).toString();
-    const response = await fetchWithTimeout(
-      `${SERVER_URL}/api/users/locations?clerkId=${clerkId}&${queryParams}`,
-      {}
-    );
+    const queryParams = new URLSearchParams();
+
+    Object.entries(filters).forEach(([key, value]) => {
+      if (value && key !== "gender") {
+        queryParams.append(key, value);
+      }
+    });
+
+    if (filters.gender && filters.gender !== "all") {
+      filters.gender.split(",").forEach((g) => queryParams.append("gender", g));
+    }
+
+    const response = await fetchWithTimeout(`${SERVER_URL}/api/users/locations?clerkId=${clerkId}&${queryParams}`, {});
 
     if (!response.ok) {
       throw new Error("Ошибка получения данных пользователей");
@@ -93,6 +115,9 @@ const fetchOtherUsersLocations = async (clerkId: string, filters: Filters = {}):
     return [];
   }
 };
+
+//Змінила до
+
 
 const Map = () => {
   const { userLatitude, userLongitude, setUserLocation } = useLocationStore();
@@ -110,6 +135,13 @@ const Map = () => {
   const [selectedDog, setSelectedDog] = useState<any | null>(null);
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
   const [userImage, setUserImage] = useState<string | null>(null);
+  //Додала
+  const mapRef = useRef<MapView | null>(null);
+  const [currentRegion, setCurrentRegion] = useState<Region | null>(null);
+  const [showMarkerLabels, setShowMarkerLabels] = useState(true);
+  const { dogs, loading: dogsLoading } = useFetchDogs(user || null, SERVER_URL);
+  const [mapKey, setMapKey] = useState(0);
+
 
   const handleFilterChange = (key: string, value: string) => {
     setFilters((prevFilters) => ({
@@ -122,46 +154,140 @@ const Map = () => {
     setFilterModalVisible(!filterModalVisible);
   };
 
-  const openDogProfile = (dog: any) => {
-    console.log("Opening Dog Profile:", dog);
-    setSelectedDog(dog);
-    setIsModalVisible(true);
-  };
+  
+  const { setMatching } = useMatchingStore();
 
+  const openDogProfile = (dog: any) => {
+    console.log("🐶 Открываем профиль собаки:", dog.name, "ID:", dog.dog_id);
+  
+    // ✅ Если dog_id отсутствует, используем существующий ID из списка собак
+    if (!dog.dog_id) {
+      console.warn("⚠️ У собаки нет `dog_id`, проверяем на соответствие существующим данным.");
+      const foundDog = dogs.find(d => d.name === dog.name); // Ищем по имени
+      if (foundDog) {
+        dog.dog_id = foundDog.dog_id; // Присваиваем найденный ID
+        console.log("✅ Найден существующий `dog_id`:", dog.dog_id);
+      } else {
+        console.warn("⚠️ `dog_id` не найден, используем временный.");
+        dog.dog_id = `temp_${Date.now()}`; // Если не нашли, генерируем ID
+      }
+    }
+  
+    const { matchingData } = useMatchingStore.getState();
+    console.log("🔍 MatchingData перед открытием:", matchingData);
+  
+    // ✅ Теперь matchingData ищется по корректному ID
+    const similarity = matchingData[dog.dog_id] ?? dog.similarity_percentage ?? 0;
+  
+    setSelectedDog({
+      ...dog,
+      similarity_percentage: similarity,
+    });
+  
+    console.log("🔸 Итоговое значение метчинга:", similarity);
+    setIsModalVisible(true);
+  };  
+  
+ 
   const closeDogProfile = () => {
     setSelectedDog(null);
     setIsModalVisible(false);
   };
+  //Додала
+  const THRESHOLD = 0.02;
 
-  const applyFilters = async () => {
-    toggleFilterModal();
-    if (user && user.id) {
-      const filteredUsers = await fetchOtherUsersLocations(user.id, filters);
-      if (filteredUsers.length === 0) {
-        Alert.alert("Результатов не найдено", "Попробуйте изменить фильтры");
-        setOtherUsersLocations([]);
-      } else {
-        setOtherUsersLocations(filteredUsers);
-        setFiltersApplied(true);
+ 
+const handleRegionChange = (region: Region) => {
+  if (region.latitudeDelta > THRESHOLD) {
+      setCurrentRegion(region); 
+      setShowMarkerLabels(region.latitudeDelta <= THRESHOLD);
+  } else {
+    setShowMarkerLabels(true);
+    setMapKey((prevKey) => prevKey + 1); 
+  }
+};
+
+//Змінила від
+
+const forceUpdateMap = () => {
+  setOtherUsersLocations((prev) => [...prev]); 
+};
+
+useEffect(() => {
+  console.log("🟢 Вызов fetchOtherUsersWithFilters()");
+  fetchOtherUsersWithFilters();
+}, []); 
+
+const fetchOtherUsersWithFilters = async () => {
+  if (!user || !user.id) return;
+
+  try {
+    setLoading(true);
+    const queryParams = new URLSearchParams(filters).toString();
+    const queryString = queryParams ? `&${queryParams}` : "";
+
+    const response = await fetch(`${SERVER_URL}/api/users/locations?clerkId=${user.id}${queryString}`);
+    const data = await response.json();
+
+    console.log("✅ ✅ ✅ Fetched dogs:", data);
+
+    data.forEach((dog: any) => {
+      if (dog.dog_id && dog.similarity_percentage !== undefined) {
+        setMatching(dog.dog_id, dog.similarity_percentage);
       }
+    });
+
+    setOtherUsersLocations(data);
+    forceUpdateMap();
+  } catch (error) {
+    console.error("Ошибка загрузки пользователей:", error);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+const applyFilters = async () => {
+  if (!user || !user.id) return;
+
+  const activeFilters = Object.fromEntries(
+    Object.entries(filters).filter(([_, value]) => value && value.trim() !== "")
+  );
+
+  try {
+    let filteredUsers = await fetchOtherUsersLocations(user.id, activeFilters);
+
+    if (filteredUsers.length === 0) {
+      Alert.alert("Результатів не знайдено", "Спробуйте змінити фільтри");
+      setOtherUsersLocations([]);
+    } else {
+      setOtherUsersLocations(filteredUsers);
+      setFiltersApplied(true);
     }
-  };
+  } catch (error) {
+    console.error("Ошибка загрузки пользователей:", error);
+  }
+};
+
+  //Змінила до
 
   const resetFilters = async () => {
     setFilters({});
     setFiltersApplied(false);
-
+    handleFilterChange("gender", "");
+  
     if (user && user.id) {
       try {
         const response = await fetch(`${SERVER_URL}/api/users/locations?clerkId=${user.id}`);
         const data = await response.json();
         setOtherUsersLocations(data);
       } catch (error) {
-        console.error("Ошибка при сбросе фильтров:", error);
-        Alert.alert("Ошибка", "Не удалось сбросить фильтры");
+        console.error("Помилка при скиданні фільтрів:", error);
+        Alert.alert("Помилка", "Не вдалося скинути фільтри");
       }
     }
   };
+  
 
   const toggleSwitch = () => {
     setIsToggled(!isToggled); 
@@ -214,7 +340,29 @@ const Map = () => {
       });
     }
   }, [user?.id]); 
+  
+  useEffect(() => {
+    if (!user?.id) return;
+  
+    const fetchUsers = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch(`${SERVER_URL}/api/users/locations?clerkId=${user.id}`);
+        const data = await response.json();
+        setOtherUsersLocations(data);
+      } catch (error) {
+        console.error("Ошибка загрузки пользователей после сброса фильтра:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+  
+    if (!filtersApplied) {
+      fetchUsers();
+    }
+  }, [filtersApplied]);
 
+  
   useEffect(() => {
     toggleConnectionListener();
 
@@ -291,18 +439,21 @@ const Map = () => {
 
       {userLatitude && userLongitude ? (
         <MapView
-          provider={PROVIDER_DEFAULT}
-          style={{ flex: 1 }}
-          mapType="mutedStandard"
-          showsPointsOfInterest={false}
-          showsCompass={false}
-          initialRegion={{
-            latitude: userLatitude,
-            longitude: userLongitude,
-            latitudeDelta: 0.01,
-            longitudeDelta: 0.01,
-          }}
-        >
+        ref={mapRef}
+        provider={PROVIDER_DEFAULT}
+        style={{ flex: 1 }}
+        mapType="mutedStandard"
+        showsPointsOfInterest={false}
+        showsCompass={false}
+        initialRegion={currentRegion || { 
+          latitude: userLatitude,
+          longitude: userLongitude,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        }}
+        onRegionChangeComplete={handleRegionChange}
+      >
+      
           <Marker coordinate={{ latitude: userLatitude, longitude: userLongitude }}>
           <View style={{ alignItems: "center" }}>
             <View
@@ -336,15 +487,21 @@ const Map = () => {
 
   const borderColor = location.gender === "female" ? "#FC6FCC" : "#40B3F4";
 
+  if (!location.latitude || !location.longitude || isNaN(Number(location.latitude)) || isNaN(Number(location.longitude))) {
+    console.error(`Invalid coordinates for dog_id: ${location.dog_id}`, location);
+    return null;
+  }
+  
   return (
     <Marker
-      key={key}
+      key={`dog-${index}-${location.latitude}-${location.longitude}`} 
       coordinate={{
-        latitude: parseFloat(location.latitude),
-        longitude: parseFloat(location.longitude),
+        latitude: Number(location.latitude),
+        longitude: Number(location.longitude),
       }}
       onPress={() => openDogProfile(location)}
     >
+  
       <View style={{ alignItems: "center" }}>
         <View
           style={{
@@ -360,7 +517,13 @@ const Map = () => {
             style={{ width: 64, height: 64, borderRadius: 32 }}
           />
         </View>
-        <Text style={{ marginTop: 4, fontWeight: "bold" }}>{location.name}</Text>
+        {/* Змінила від */}
+        {showMarkerLabels && (
+                <Text style={{ marginTop: 4, fontWeight: "bold" }}>
+                  {location.name}
+                </Text>
+              )}
+        {/* Змінила до */}
       </View>
     </Marker>
   );
@@ -374,7 +537,7 @@ const Map = () => {
 
       <TouchableOpacity
         onPress={toggleFilterModal}
-        className="absolute bg-white rounded-full shadow-lg flex flex-row justify-center items-center w-[180px]"
+        className="absolute bg-white rounded-full shadow-lg flex flex-row justify-center items-center w-[180px] h-[25px]"
         style={{
           top: 150,
           right: 35,
@@ -387,9 +550,9 @@ const Map = () => {
       {filtersApplied && (
         <TouchableOpacity
           onPress={resetFilters}
-          className="absolute bg-red-500 rounded-full shadow-lg flex flex-row justify-center items-center w-[180px] h-[35px]"
+          className="absolute bg-red-500 rounded-full shadow-lg flex flex-row justify-center items-center w-[180px] h-[25px]"
           style={{
-            top: 200,
+            top: 190,
             right: 35,
           }}
         >

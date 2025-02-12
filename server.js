@@ -177,6 +177,7 @@ app.get('/api/dogs/user', async (req, res) => {
     const updatedDogs = dogs.map((dog) => ({
       ...dog,
       image: user[0]?.image || null, 
+      status: dog.status || 'вдома',
     }));
 
     res.status(200).json(updatedDogs);
@@ -186,6 +187,31 @@ app.get('/api/dogs/user', async (req, res) => {
   }
 });
 
+app.patch('/api/dogs/status', async (req, res) => {
+  const { clerkId, status } = req.body;
+
+  if (!clerkId || !['вдома', 'гуляє'].includes(status)) {
+    return res.status(400).json({ error: 'Invalid request data' });
+  }
+
+  try {
+    const response = await sql`
+      UPDATE dogs
+      SET status = ${status}
+      WHERE clerk_id = ${clerkId}
+      RETURNING *;
+    `;
+
+    if (response.length === 0) {
+      return res.status(404).json({ error: 'Dog not found' });
+    }
+
+    res.status(200).json({ success: true, data: response[0] });
+  } catch (error) {
+    console.error('Error updating dog status:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
 
 app.get('/api/dogs/matched', async (req, res) => {
   const { breed, minAge, maxAge, clerkId } = req.query;
@@ -215,7 +241,8 @@ app.get('/api/dogs/matched', async (req, res) => {
           userDog.after_walk_points || [],
           [],
           userDog.vaccination_status,
-          userDog.anti_tick
+          userDog.anti_tick,
+          userDog.status
       );
 
       const dogs = dogsQuery.map(dogData => new Dog(
@@ -230,7 +257,8 @@ app.get('/api/dogs/matched', async (req, res) => {
           dogData.after_walk_points || [],
           [],
           dogData.vaccination_status,
-          dogData.anti_tick
+          dogData.anti_tick,
+          dogData.status
       ));
 
       const matchedDogs = match_dogs(targetDog, dogs, 50);
@@ -274,15 +302,17 @@ app.get('/api/user', async (req, res) => {
     let user;
     if (clerkId) {
       user = await sql`
-        SELECT name, email, gender, birth_date, image, unique_code
-        FROM users
-        WHERE clerk_id = ${clerkId};
+        SELECT u.name, u.email, u.gender, u.birth_date, u.image, u.unique_code, d.breed
+        FROM users u
+        LEFT JOIN dogs d ON u.clerk_id = d.clerk_id
+        WHERE u.clerk_id = ${clerkId};
       `;
     } else if (uniqueCode) {
       user = await sql`
-        SELECT name, email, gender, birth_date, image, unique_code
-        FROM users
-        WHERE unique_code = ${uniqueCode};
+        SELECT u.name, u.email, u.gender, u.birth_date, u.image, u.unique_code, d.breed
+        FROM users u
+        LEFT JOIN dogs d ON u.clerk_id = d.clerk_id
+        WHERE u.unique_code = ${uniqueCode};
       `;
     }
 
@@ -298,8 +328,6 @@ app.get('/api/user', async (req, res) => {
     res.status(500).json({ error: 'Внутренняя ошибка сервера' });
   }
 });
-
-
 
 app.patch('/api/user', async (req, res) => {
   const { clerkId, birthDate } = req.body;
@@ -428,7 +456,7 @@ try {
 
   const userLocation = userLocationQuery[0];
   const dogsQuery = await sql`
-  SELECT d.breed, d.age, ul.latitude, ul.longitude, u.gender, u.name, u.image,
+  SELECT d.breed, d.age, d.status, ul.latitude, ul.longitude, u.gender, u.name, u.image,
          earth_distance(ll_to_earth(${userLocation.latitude}, ${userLocation.longitude}),
                         ll_to_earth(ul.latitude, ul.longitude)) AS distance
   FROM dogs d
@@ -443,6 +471,7 @@ try {
 `;
 
   console.log('Результаты запроса собак:', dogsQuery);
+  
 
   if (dogsQuery.length === 0) {
     return res.status(404).json({ error: 'No matching dogs found' });
@@ -748,6 +777,81 @@ app.get("/api/notifications", async (req, res) => {
     res.status(500).json({ error: "Не удалось получить уведомления" });
   }
 });
+
+
+app.post('/api/chats', async (req, res) => {
+  const { user1_id, user2_id } = req.body;
+
+  try {
+      const existingChat = await pool.query(
+          "SELECT chat_id FROM chats WHERE (user1_id = $1 AND user2_id = $2) OR (user1_id = $2 AND user2_id = $1)",
+          [user1_id, user2_id]
+      );
+
+      if (existingChat.rows.length > 0) {
+          return res.json({ chatId: existingChat.rows[0].chat_id });
+      }
+
+      const newChat = await pool.query(
+          "INSERT INTO chats (user1_id, user2_id) VALUES ($1, $2) RETURNING chat_id",
+          [user1_id, user2_id]
+      );
+
+      res.json({ chatId: newChat.rows[0].chat_id });
+  } catch (err) {
+      console.error(err);
+      res.status(500).send("Ошибка создания чата");
+  }
+});
+ 
+app.get('/api/chats/:userId', async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+      const chats = await pool.query(
+          "SELECT chat_id, user1_id, user2_id FROM chats WHERE user1_id = $1 OR user2_id = $1",
+          [userId]
+      );
+
+      res.json(chats.rows);
+  } catch (err) {
+      console.error(err);
+      res.status(500).send("Ошибка получения чатов");
+  }
+});
+ 
+app.post('/api/messages', async (req, res) => {
+  const { chat_id, sender_id, receiver_id, text } = req.body;
+
+  try {
+      const newMessage = await pool.query(
+          "INSERT INTO messages (chat_id, sender_id, receiver_id, text) VALUES ($1, $2, $3, $4) RETURNING *",
+          [chat_id, sender_id, receiver_id, text]
+      );
+
+      res.json(newMessage.rows[0]);
+  } catch (err) {
+      console.error(err);
+      res.status(500).send("Ошибка отправки сообщения");
+  }
+});
+ 
+app.get('/api/messages/:chatId', async (req, res) => {
+  const { chatId } = req.params;
+
+  try {
+      const messages = await pool.query(
+          "SELECT * FROM messages WHERE chat_id = $1 ORDER BY timestamp ASC",
+          [chatId]
+      );
+
+      res.json(messages.rows);
+  } catch (err) {
+      console.error(err);
+      res.status(500).send("Ошибка получения сообщений");
+  }
+});
+ 
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {

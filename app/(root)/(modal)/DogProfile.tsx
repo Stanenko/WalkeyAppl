@@ -2,8 +2,10 @@ import React from 'react';
 import { View, Text, Image, Modal, StyleSheet, TouchableOpacity } from 'react-native';
 import { images } from '@/constants/index';
 import { icons } from '@/constants/svg';
+import { useMatchingStore } from "@/store/matchingStore";
 
 interface Dog {
+  dog_id?: string; 
   image?: string; 
   name?: string;
   similarity_percentage?: number;
@@ -23,6 +25,7 @@ interface DogProfileModalProps {
 const DogProfileModal: React.FC<DogProfileModalProps> = ({ isVisible, onClose, dog }) => {
   if (!dog) return null;
 
+  
   return (
     <Modal
       visible={isVisible}
@@ -44,10 +47,10 @@ const DogProfileModal: React.FC<DogProfileModalProps> = ({ isVisible, onClose, d
           <View style={styles.nameRow}>
             <Text style={styles.dogName}>{dog.name || 'Ім\'я'}</Text>
             <Text style={styles.matchPercentage}>
-              {dog.similarity_percentage !== undefined
+                {typeof dog.similarity_percentage === "number"
                 ? `${dog.similarity_percentage}% метч`
-                : 'Нет данных'}
-            </Text>
+                : "Нет данных"}
+          </Text>
           </View>
 
           <View style={styles.statusContainerWrapper}>

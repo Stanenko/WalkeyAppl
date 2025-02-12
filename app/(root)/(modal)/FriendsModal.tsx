@@ -22,7 +22,7 @@ interface User {
   name: string;
 }
 
-const SERVER_URL = "https://7d72-93-200-239-96.ngrok-free.app";
+const SERVER_URL = "http://192.168.0.18:3000";
 
 const FriendsModal: React.FC<FriendsModalProps> = ({ isVisible, onClose }) => {
   const [isAddFriendModalVisible, setIsAddFriendModalVisible] = useState(false);

@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { Modal, TextInput, Text, TouchableOpacity, View, Alert } from "react-native";
 import { icons } from "@/constants/svg";
 
-const SERVER_URL = "https://7d72-93-200-239-96.ngrok-free.app";
+const SERVER_URL = "http://192.168.0.18:3000";
+
 
 interface InviteFriendModalProps {
   isVisible: boolean;
