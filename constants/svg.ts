@@ -30,6 +30,7 @@ import GPermissionIcon from '@/assets/icons/group-permission';
 import GPlusIcon from '@/assets/icons/group-plus';
 import GInviteIcon from '@/assets/icons/group-invite';
 import CopyIcon from '@/assets/icons/copy-icon';
+import TablerIcon from '@/assets/icons/tabler_vaccine';
 
 import lock from "@/assets/icons/lock.png";
 import email from "@/assets/icons/email.png";
@@ -67,6 +68,7 @@ export const icons = {
   GPlusIcon,
   GInviteIcon,
   CopyIcon,
+  TablerIcon,
   lock,
   email,
 };

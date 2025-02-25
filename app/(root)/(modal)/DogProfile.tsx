@@ -3,9 +3,23 @@ import { View, Text, Image, Modal, StyleSheet, TouchableOpacity } from 'react-na
 import { images } from '@/constants/index';
 import { icons } from '@/constants/svg';
 import { useMatchingStore } from "@/store/matchingStore";
+import { useUser } from "@clerk/clerk-expo";
+import { useNavigation } from "@react-navigation/native";
+import { StackNavigationProp } from "@react-navigation/stack";
+import { useRouter } from "expo-router";
+
+const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL || "http://192.168.0.18:3000";
+
+type RootStackParamList = {
+  ChatScreen: { chatId: string; receiverId: string };
+};
+
+type NavigationProp = StackNavigationProp<RootStackParamList, "ChatScreen">;
 
 interface Dog {
   dog_id?: string; 
+  clerk_id?: string; 
+  unique_code?: string; 
   image?: string; 
   name?: string;
   similarity_percentage?: number;
@@ -14,6 +28,8 @@ interface Dog {
   breed?: string;
   age?: number;
   walkingPlace?: string;
+  castrated?: boolean;
+  in_heat?: boolean; 
 }
 
 interface DogProfileModalProps {
@@ -23,8 +39,53 @@ interface DogProfileModalProps {
 }
 
 const DogProfileModal: React.FC<DogProfileModalProps> = ({ isVisible, onClose, dog }) => {
+  console.log("🐶 Текущая собака в DogProfileModal:", dog);
+
   if (!dog) return null;
 
+
+  const { user } = useUser();
+  const navigation = useNavigation<NavigationProp>();
+  const router = useRouter();
+
+  const handleFriendRequest = async () => {
+    console.log("🐶 Текущая собака в DogProfileModal:", dog);
+    console.log("user1_id:", user?.id, "user2_id:", dog?.clerk_id);
+  
+    if (!user?.id || !dog?.clerk_id) {
+      console.error("Ошибка: user1_id или user2_id отсутствует!");
+      return;
+    }
+  
+    try {
+      const response = await fetch(`${SERVER_URL}/api/chats`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user1_id: user?.id,
+          user2_id: dog.clerk_id,
+        }),
+      });
+  
+      const data = await response.json();
+      console.log("Response from /api/chats:", data);
+  
+      if (data.chatId) {
+        onClose(); 
+        setTimeout(() => { 
+          router.push({
+            pathname: "/(root)/(modal)/ChatScreen",
+            params: {
+              chatId: data.chatId,
+              receiverId: dog.clerk_id,
+            },
+          });
+        }, 300); 
+      }
+    } catch (error) {
+      console.error("Ошибка при создании чата:", error);
+    }
+  };
   
   return (
     <Modal
@@ -82,6 +143,20 @@ const DogProfileModal: React.FC<DogProfileModalProps> = ({ isVisible, onClose, d
 
           <View style={styles.separator} />
 
+          <View style={styles.medicalStatusContainer}>
+  <View style={styles.medicalStatusRow}>
+    <Text style={styles.medTitle}>Медичний статус:</Text>
+    <View style={[styles.statusBox]}>
+      <Text style={styles.statusText}>
+        {dog.gender === 'male'
+          ? (dog.castrated ? 'кастрований' : 'не кастрований')
+          : (dog.castrated ? 'стерилізована' : dog.in_heat ? 'течка зараз' : 'немає течки')}
+      </Text>
+    </View>
+  </View>
+</View>
+
+
           <View style={styles.walkingRow}>
             <Text style={styles.walkingTitle}>Зазвичай гуляє:</Text>
             <Text style={styles.walkingAddress}>
@@ -90,11 +165,13 @@ const DogProfileModal: React.FC<DogProfileModalProps> = ({ isVisible, onClose, d
           </View>
 
           <TouchableOpacity
-            style={[styles.orangeButton, { marginTop: 10 }]}
-            onPress={() => console.log('Подружитись pressed')}
+            style={[styles.orangeButton, { marginTop: 10, flexDirection: "row", alignItems: "center", justifyContent: "center" }]}
+            onPress={handleFriendRequest}
           >
-            <Text style={styles.orangeButtonText}>Подружитись</Text>
+            <Text style={[styles.orangeButtonText, { marginRight: 8 }]}>Подружитись</Text>
+            <icons.WhitePawIcon width={24} height={24} />
           </TouchableOpacity>
+
         </View>
       </View>
     </Modal>
@@ -108,7 +185,7 @@ const styles = StyleSheet.create({
   },
   backgroundImage: {
     width: '100%',
-    height: '75%',
+    height: '65%',
     resizeMode: 'cover',
   },
   backButton: {
@@ -135,7 +212,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 0,
     width: '100%',
-    height: 320,
+    height: 370,
   },
   nameRow: {
     flexDirection: 'row',
@@ -171,11 +248,6 @@ const styles = StyleSheet.create({
   statusIcon: {
     marginRight: 8,
     color: '#FF6C22',
-  },
-  statusText: {
-    fontSize: 16,
-    color: '#333',
-    fontWeight: '500',
   },
   rowInfo: {
     flexDirection: 'row',
@@ -217,6 +289,13 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginRight: 5,
   },
+  medTitle: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '500',
+    marginRight: 5,
+    marginBottom: 10,
+  },
   walkingAddress: {
     fontSize: 16,
     color: '#666',
@@ -235,6 +314,32 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
+  medicalStatusContainer: {
+    marginBottom: 15,
+  },
+  medicalStatusRow: {
+    flexDirection: 'row', 
+    justifyContent: 'space-between',
+    alignItems: 'center', 
+    marginTop: 5,
+  },
+  statusText: {
+    fontSize: 16,
+    color: '#333',
+    fontWeight: '500',
+    paddingHorizontal: 5,
+    textAlign: 'center',
+  },
+  statusBox: {
+    borderWidth: 1,
+    borderColor: '#B0B0B0',
+    borderRadius: 25,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 25,
+  }, 
 });
 
 export default DogProfileModal;

@@ -16,7 +16,7 @@ import { getServerUrl } from "@/utils/getServerUrl";
 import { useRef } from "react";
 
 
-const SERVER_URL = "http://192.168.0.18:3000";
+const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL || "http://192.168.0.18:3000";
 
 
 const SignUp = () => {

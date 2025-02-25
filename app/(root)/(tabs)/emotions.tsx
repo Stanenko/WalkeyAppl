@@ -10,7 +10,7 @@ import InviteFriendModal from "@/app/(root)/(modal)/InviteFriendModal";
 import FriendsModal from "@/app/(root)/(modal)/FriendsModal";
 import SubscriptionModal from "@/app/(root)/(modal)/SubscriptionModal";
 
-const SERVER_URL = "http://192.168.0.18:3000";
+const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL || "http://192.168.0.18:3000";
 
 
 interface ProfileItem {

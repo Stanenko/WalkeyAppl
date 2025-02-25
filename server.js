@@ -177,6 +177,7 @@ app.get('/api/dogs/user', async (req, res) => {
     const updatedDogs = dogs.map((dog) => ({
       ...dog,
       image: user[0]?.image || null, 
+      clerk_id: dog.clerk_id || user[0]?.clerk_id,
       status: dog.status || 'вдома',
     }));
 
@@ -187,31 +188,7 @@ app.get('/api/dogs/user', async (req, res) => {
   }
 });
 
-app.patch('/api/dogs/status', async (req, res) => {
-  const { clerkId, status } = req.body;
 
-  if (!clerkId || !['вдома', 'гуляє'].includes(status)) {
-    return res.status(400).json({ error: 'Invalid request data' });
-  }
-
-  try {
-    const response = await sql`
-      UPDATE dogs
-      SET status = ${status}
-      WHERE clerk_id = ${clerkId}
-      RETURNING *;
-    `;
-
-    if (response.length === 0) {
-      return res.status(404).json({ error: 'Dog not found' });
-    }
-
-    res.status(200).json({ success: true, data: response[0] });
-  } catch (error) {
-    console.error('Error updating dog status:', error);
-    res.status(500).json({ error: 'Internal Server Error' });
-  }
-});
 
 app.get('/api/dogs/matched', async (req, res) => {
   const { breed, minAge, maxAge, clerkId } = req.query;
@@ -433,7 +410,7 @@ app.get('/api/user/location', async (req, res) => {
 });
 
 app.get('/api/users/locations', async (req, res) => {
-const { clerkId, breed, maxAge, minAge, gender } = req.query;
+const { clerkId, breed, maxAge, minAge, gender, castrated, noHeat, status } = req.query;
 
 if (!clerkId) {
   return res.status(400).json({ error: 'clerkId is required' });
@@ -456,7 +433,7 @@ try {
 
   const userLocation = userLocationQuery[0];
   const dogsQuery = await sql`
-  SELECT d.breed, d.age, d.status, ul.latitude, ul.longitude, u.gender, u.name, u.image,
+  SELECT d.breed, d.age, d.status, d.castrated, d.in_heat, ul.latitude, ul.longitude,  u.clerk_id, u.gender, u.name, u.image,
          earth_distance(ll_to_earth(${userLocation.latitude}, ${userLocation.longitude}),
                         ll_to_earth(ul.latitude, ul.longitude)) AS distance
   FROM dogs d
@@ -467,6 +444,9 @@ try {
   AND (COALESCE(${breed}, '') = '' OR LOWER(d.breed) = LOWER(${breed}))
   AND (COALESCE(${maxAge}, '') = '' OR d.age <= ${maxAge})
   AND (COALESCE(${minAge}, '') = '' OR d.age >= ${minAge})
+  AND (COALESCE(${castrated}, '') = '' OR d.castrated = ${castrated})
+  AND (COALESCE(${noHeat}, '') = '' OR d.in_heat = false)
+  AND (COALESCE(${status}, '') = '' OR d.status = ${status}) 
   ORDER BY distance ASC;
 `;
 
@@ -559,6 +539,36 @@ app.get('/api/vaccinations', async (req, res) => {
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
+
+app.patch('/api/dogs/status', async (req, res) => {
+  const { clerkId, status, castrated, inHeat } = req.body;
+
+  if (!clerkId) {
+    return res.status(400).json({ error: 'clerkId is required' });
+  }
+
+  try {
+    const response = await sql`
+      UPDATE dogs
+      SET 
+          status = COALESCE(${status}, status),
+          castrated = COALESCE(${castrated}, castrated),
+          in_heat = COALESCE(${inHeat}, in_heat)
+      WHERE clerk_id = ${clerkId}
+      RETURNING *;
+    `;
+
+    if (response.length === 0) {
+      return res.status(404).json({ error: 'Dog not found' });
+    }
+
+    res.status(200).json({ success: true, data: response[0] });
+  } catch (error) {
+    console.error('Error updating dog status:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
 
 app.get("/api/db-check", async (req, res) => {
   try {
@@ -782,76 +792,100 @@ app.get("/api/notifications", async (req, res) => {
 app.post('/api/chats', async (req, res) => {
   const { user1_id, user2_id } = req.body;
 
+  console.log("Received body:", req.body); // 👉 Добавлено для отладки
+
+  if (!user1_id || !user2_id) {
+    return res.status(400).json({ error: "Оба user1_id и user2_id обязательны" });
+  }
+
   try {
-      const existingChat = await pool.query(
-          "SELECT chat_id FROM chats WHERE (user1_id = $1 AND user2_id = $2) OR (user1_id = $2 AND user2_id = $1)",
-          [user1_id, user2_id]
-      );
+    const existingChat = await sql`
+      SELECT chat_id FROM chats 
+      WHERE (user1_id = ${user1_id} AND user2_id = ${user2_id}) 
+         OR (user1_id = ${user2_id} AND user2_id = ${user1_id});
+    `;
 
-      if (existingChat.rows.length > 0) {
-          return res.json({ chatId: existingChat.rows[0].chat_id });
-      }
+    if (existingChat.length > 0) {
+      return res.json({ chatId: existingChat[0].chat_id });
+    }
 
-      const newChat = await pool.query(
-          "INSERT INTO chats (user1_id, user2_id) VALUES ($1, $2) RETURNING chat_id",
-          [user1_id, user2_id]
-      );
+    const newChat = await sql`
+      INSERT INTO chats (user1_id, user2_id) 
+      VALUES (${user1_id}, ${user2_id}) 
+      RETURNING chat_id;
+    `;
 
-      res.json({ chatId: newChat.rows[0].chat_id });
-  } catch (err) {
-      console.error(err);
-      res.status(500).send("Ошибка создания чата");
+    res.json({ chatId: newChat[0].chat_id });
+  } catch (error) {
+    console.error("Ошибка создания чата:", error);
+    res.status(500).json({ error: "Ошибка на сервере" });
   }
 });
+
  
 app.get('/api/chats/:userId', async (req, res) => {
   const { userId } = req.params;
 
-  try {
-      const chats = await pool.query(
-          "SELECT chat_id, user1_id, user2_id FROM chats WHERE user1_id = $1 OR user2_id = $1",
-          [userId]
-      );
+  if (!userId) {
+    return res.status(400).json({ error: "userId обязателен" });
+  }
 
-      res.json(chats.rows);
-  } catch (err) {
-      console.error(err);
-      res.status(500).send("Ошибка получения чатов");
+  try {
+    const chats = await sql`
+      SELECT chat_id, user1_id, user2_id 
+      FROM chats 
+      WHERE user1_id = ${userId} OR user2_id = ${userId};
+    `;
+
+    res.json(chats);
+  } catch (error) {
+    console.error("Ошибка получения чатов:", error);
+    res.status(500).json({ error: "Ошибка на сервере" });
   }
 });
+
  
 app.post('/api/messages', async (req, res) => {
   const { chat_id, sender_id, receiver_id, text } = req.body;
 
-  try {
-      const newMessage = await pool.query(
-          "INSERT INTO messages (chat_id, sender_id, receiver_id, text) VALUES ($1, $2, $3, $4) RETURNING *",
-          [chat_id, sender_id, receiver_id, text]
-      );
+  if (!chat_id || !sender_id || !receiver_id || !text) {
+    return res.status(400).json({ error: "Все поля обязательны" });
+  }
 
-      res.json(newMessage.rows[0]);
-  } catch (err) {
-      console.error(err);
-      res.status(500).send("Ошибка отправки сообщения");
+  try {
+    const newMessage = await sql`
+      INSERT INTO messages (chat_id, sender_id, receiver_id, text) 
+      VALUES (${chat_id}, ${sender_id}, ${receiver_id}, ${text}) 
+      RETURNING *;
+    `;
+
+    res.json(newMessage[0]);
+  } catch (error) {
+    console.error("Ошибка отправки сообщения:", error);
+    res.status(500).json({ error: "Ошибка на сервере" });
   }
 });
- 
+
 app.get('/api/messages/:chatId', async (req, res) => {
   const { chatId } = req.params;
 
-  try {
-      const messages = await pool.query(
-          "SELECT * FROM messages WHERE chat_id = $1 ORDER BY timestamp ASC",
-          [chatId]
-      );
+  if (!chatId) {
+    return res.status(400).json({ error: "chatId обязателен" });
+  }
 
-      res.json(messages.rows);
-  } catch (err) {
-      console.error(err);
-      res.status(500).send("Ошибка получения сообщений");
+  try {
+    const messages = await sql`
+      SELECT * FROM messages 
+      WHERE chat_id = ${chatId} 
+      ORDER BY timestamp ASC;
+    `;
+
+    res.json(messages);
+  } catch (error) {
+    console.error("Ошибка получения сообщений:", error);
+    res.status(500).json({ error: "Ошибка на сервере" });
   }
 });
- 
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, "0.0.0.0", () => {

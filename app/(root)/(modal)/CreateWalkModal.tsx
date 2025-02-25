@@ -13,7 +13,7 @@ import { useUser } from "@clerk/clerk-expo";
 import * as Location from "expo-location";
 import { icons } from "@/constants/svg"; 
 
-const SERVER_URL = "http://192.168.0.18:3000";
+const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL || "http://192.168.0.18:3000";
 
 interface Walk {
   id: number;

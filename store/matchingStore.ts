@@ -36,7 +36,7 @@ export const useMatchingStore = create<MatchingStore>()(
     }),
     {
       name: "matching-storage",
-      storage: zustandStorage, // ✅ Используем кастомное хранилище
+      storage: zustandStorage,
     }
   )
 );

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Modal, TextInput, Text, TouchableOpacity, View, Alert } from "react-native";
 import { icons } from "@/constants/svg";
 
-const SERVER_URL = "http://192.168.0.18:3000";
+const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL || "http://192.168.0.18:3000";
 
 
 interface InviteFriendModalProps {

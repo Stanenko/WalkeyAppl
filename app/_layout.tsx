@@ -44,7 +44,7 @@ export default function RootLayout() {
   return (
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
       <ClerkLoaded>
-        <AppContent setUserData={setUserData} setDogsData={setDogsData} />
+          <AppContent setUserData={setUserData} setDogsData={setDogsData} />
       </ClerkLoaded>
     </ClerkProvider>
   );
@@ -63,7 +63,7 @@ function AppContent({ setUserData, setDogsData }: AppContentProps) {
       if (!user || !user.id) return;
 
       try {
-        const SERVER_URL = "http://192.168.0.18:3000";
+        const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL || "http://192.168.0.18:3000";
 
         const userResponse = await fetch(
           `${SERVER_URL}/api/user?clerkId=${user.id}`

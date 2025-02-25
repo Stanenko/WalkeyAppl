@@ -13,7 +13,10 @@
       "config": {
         "googleMapsApiKey": "AIzaSyCNZbhIl1eJ09we2bhv-i3FqF_OQll4zx0"
       },
-      "bundleIdentifier": "com.juliastanenko.Walkey"
+      "bundleIdentifier": "com.juliastanenko.Walkey",
+      "runtimeVersion": {
+        "policy": "appVersion"
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -25,7 +28,8 @@
           "apiKey": "AIzaSyCNZbhIl1eJ09we2bhv-i3FqF_OQll4zx0"
         }
       },
-      "package": "com.juliastanenko.Walkey"
+      "package": "com.juliastanenko.Walkey",
+      "runtimeVersion": "1.0.0"
     },
     "web": {
       "bundler": "metro",
@@ -62,6 +66,9 @@
       "eas": {
         "projectId": "08de23d0-f84a-42bc-baab-63d979184a2e"
       }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/08de23d0-f84a-42bc-baab-63d979184a2e"
     }
   }
 }

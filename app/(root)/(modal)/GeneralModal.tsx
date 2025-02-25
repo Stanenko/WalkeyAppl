@@ -16,9 +16,9 @@ import { icons } from "@/constants/svg";
 import { useNavigation } from "@react-navigation/native";
 import { uploadImageToFirebase } from "@/utils/firebaseStorageUtils";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import { router } from "expo-router"; // ✅ Импортируем router из expo-router
+import { router } from "expo-router"; 
 
-const SERVER_URL = "http://192.168.0.18:3000";
+const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL || "http://192.168.0.18:3000";
 
 type RootStackParamList = {
   welcome: undefined;

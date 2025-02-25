@@ -7,7 +7,7 @@ import { useRouter } from "expo-router";
 import { icons } from "@/constants/svg";
 import { useUserStore } from "../../store/userStore";
 
-const SERVER_URL = "http://192.168.0.18:3000";
+const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL || "http://192.168.0.18:3000";
 
 const SignIn = () => {
   const { isLoaded, signIn } = useSignIn();

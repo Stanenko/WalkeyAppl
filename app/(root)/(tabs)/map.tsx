@@ -15,7 +15,7 @@ import { useToggleStore } from "@/store/toggleStore";
 import { useMatchingStore } from "@/store/matchingStore";
 import useFetchDogs from "@/hooks/useFetchDogs";
 
-const SERVER_URL = "http://192.168.0.18:3000";
+const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL || "http://192.168.0.18:3000";
 
 interface DogInterface {
   dog_id: string;
@@ -160,16 +160,15 @@ const Map = () => {
   const openDogProfile = (dog: any) => {
     console.log("🐶 Открываем профиль собаки:", dog.name, "ID:", dog.dog_id);
   
-    // ✅ Если dog_id отсутствует, используем существующий ID из списка собак
     if (!dog.dog_id) {
       console.warn("⚠️ У собаки нет `dog_id`, проверяем на соответствие существующим данным.");
-      const foundDog = dogs.find(d => d.name === dog.name); // Ищем по имени
+      const foundDog = dogs.find(d => d.name === dog.name);
       if (foundDog) {
-        dog.dog_id = foundDog.dog_id; // Присваиваем найденный ID
+        dog.dog_id = foundDog.dog_id; 
         console.log("✅ Найден существующий `dog_id`:", dog.dog_id);
       } else {
         console.warn("⚠️ `dog_id` не найден, используем временный.");
-        dog.dog_id = `temp_${Date.now()}`; // Если не нашли, генерируем ID
+        dog.dog_id = `temp_${Date.now()}`;
       }
     }
   

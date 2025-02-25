@@ -16,7 +16,7 @@ import { useToggleStore } from "@/store/toggleStore";
 import useFetchDogs from "@/hooks/useFetchDogs";
 import { useMatchingStore } from '@/store/matchingStore';
 
-const SERVER_URL = "http://192.168.0.18:3000";
+const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL || "http://192.168.0.18:3000";
 
 const fetchDataFromAPI = async (url: string, errorMessage: string): Promise<any> => {
   try {
@@ -255,38 +255,40 @@ const SliderComponent: React.FC<SliderComponentProps> = ({ clerkId }) => {
         const protectionResponse = await fetch(
           `${SERVER_URL}/api/medical/records?clerkId=${clerkId}&type=protection`
         );
-
-        let vaccinationData = vaccinationResponse.ok
-          ? await vaccinationResponse.json()
-          : [];
-        let protectionData = protectionResponse.ok
-          ? await protectionResponse.json()
-          : [];
-
+  
+        let vaccinationData = vaccinationResponse.ok ? await vaccinationResponse.json() : [];
+        let protectionData = protectionResponse.ok ? await protectionResponse.json() : [];
+  
+        console.log("🚀 Vaccination Data:", vaccinationData);
+        console.log("🚀 Protection Data:", protectionData);
+  
         const today = new Date();
-
-        vaccinationData = vaccinationData.filter((item: { nextdate: string }) => new Date(item.nextdate) >= today);
-        protectionData = protectionData.filter((item: { nextdate: string }) => new Date(item.nextdate) >= today);
-        console.log("Protection data before filtering:", protectionData);
-
-
+        vaccinationData = vaccinationData.filter((item: { nextdate: string }) => {
+          console.log("Checking nextdate:", item.nextdate);
+          return item.nextdate && new Date(item.nextdate) >= today;
+        });
+  
+        protectionData = protectionData.filter((item: { nextdate: string }) => {
+          console.log("Checking protection nextdate:", item.nextdate);
+          return item.nextdate && new Date(item.nextdate) >= today;
+        });
+  
         const slides: Slide[] = [];
-
+  
         if (vaccinationData.length > 0) {
-          const nearestVaccination = vaccinationData.reduce((prev: Slide, curr: Slide) => {
-            const prevDate = new Date(prev.nextDate || 0);
-            const currDate = new Date(curr.nextDate || 0);
-            return currDate < prevDate ? curr : prev;
-          });
+          const nearestVaccination = vaccinationData.reduce((prev: any, curr: any) => {
+            if (!prev || !prev.nextdate) return curr;
+            return new Date(curr.nextdate) < new Date(prev.nextdate) ? curr : prev;
+          }, vaccinationData[0]);
+  
           slides.push({
             id: "vaccination",
             type: "vaccination",
             title: "Вакцинація",
-            subtitle: `Назва вакцинації: ${nearestVaccination.name}`,
+            subtitle: `${nearestVaccination.name}`,
             date: `Остання вакцина: ${formatDateToUkrainian(nearestVaccination.lastdate)}`,
             nextDate: `Наступна вакцина: ${formatDateToUkrainian(nearestVaccination.nextdate)}`,
-            description:
-              "Не забудьте підготувати медичну картку та взяти з собою всі необхідні документи на вакцинацію",
+            description: "Не забудьте підготувати медичну картку та взяти з собою всі необхідні документи на вакцинацію",
             backgroundColor: "#E8F3F9",
             daysUntilNext: calculateDaysUntil(nearestVaccination.nextdate),
           });
@@ -301,13 +303,13 @@ const SliderComponent: React.FC<SliderComponentProps> = ({ clerkId }) => {
             icon: icons.GPlusIcon,
           });
         }
-
+  
         if (protectionData.length > 0) {
-          const nearestProtection = protectionData.reduce((z, curr) => {
-            const prevDate = new Date(prev.nextdate);
-            const currDate = new Date(curr.nextdate);
-            return currDate < prevDate ? curr : prev;
-          });
+          const nearestProtection = protectionData.reduce((prev: any, curr: any) => {
+            if (!prev || !prev.nextdate) return curr;
+            return new Date(curr.nextdate) < new Date(prev.nextdate) ? curr : prev;
+          }, protectionData[0]);
+  
           slides.push({
             id: "protection",
             type: "protection",
@@ -330,16 +332,17 @@ const SliderComponent: React.FC<SliderComponentProps> = ({ clerkId }) => {
             icon: icons.GPlusIcon,
           });
         }
-
+  
+        console.log("📌 Slides data before setting state:", slides);
         setSlidesData(slides);
       } catch (error) {
-        console.error("Помилка завантаження даних:", error);
+        console.error("❌ Ошибка загрузки данных:", error);
       }
     };
-
+  
     fetchData();
   }, [clerkId]);
-
+  
 
   if (slidesData.length === 0) {
     return <ActivityIndicator size="large" color="#FF6C22" />;
@@ -367,13 +370,18 @@ const SliderComponent: React.FC<SliderComponentProps> = ({ clerkId }) => {
               borderRadius: 25,
             }}
           >
-            {item.daysUntilNext != null && item.daysUntilNext > 0 && (
-              <View className="absolute top-6 right-6 bg-white rounded-full px-3 py-1">
+          {item.daysUntilNext != null && item.daysUntilNext > 0 && (
+            <View className="absolute top-6 right-6 flex-row items-center">
+              <View className="bg-white rounded-full px-3 py-1">
                 <Text className="font-bold text-black">
                   Через {item.daysUntilNext} днів
                 </Text>
               </View>
-            )}
+              <View className="bg-white rounded-full p-2 ml-2">
+                <icons.TablerIcon width={18} height={18} />
+              </View>
+            </View>
+          )}
 
             <Text className="font-bold text-xl">{item.title}</Text>
             {item.subtitle && (
@@ -415,6 +423,7 @@ const Home = () => {
   const [fadeAnim] = useState(new Animated.Value(0));
   const [isWalkModalVisible, setWalkModalVisible] = useState(false);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
+
 
   useEffect(() => {
     console.log("Clerk ID:", user?.id);
@@ -599,7 +608,6 @@ const Home = () => {
       </View>
     );
   }
-
 
   return (
     <SafeAreaView className="flex-1 bg-white">

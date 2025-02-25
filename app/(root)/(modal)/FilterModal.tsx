@@ -57,6 +57,9 @@ const FilterModal: React.FC<FilterModalProps> = ({
     male: false,
     female: false,
   });
+  const [isCastrated, setIsCastrated] = useState<boolean>(false);
+  const [noHeat, setNoHeat] = useState<boolean>(false);
+  const [isWalking, setIsWalking] = useState<boolean>(false);
   
 
   useEffect(() => {
@@ -92,7 +95,16 @@ const FilterModal: React.FC<FilterModalProps> = ({
     handleFilterChange("gender", ""); 
   };
   
-
+  const handleCastratedChange = () => {
+    setIsCastrated((prev) => !prev);
+    handleFilterChange("castrated", !isCastrated ? "true" : ""); 
+  };
+  
+  const handleNoHeatChange = () => {
+    setNoHeat((prev) => !prev);
+    handleFilterChange("noHeat", !noHeat ? "true" : "");
+  };
+  
   const handleBreedSearch = (text: string) => {
     setBreedQuery(text);
 
@@ -146,6 +158,11 @@ const FilterModal: React.FC<FilterModalProps> = ({
     setVaccinationStatus(text);
     handleFilterChange("vaccinationStatus", text);
   };
+
+  const handleWalkingChange = () => {
+    setIsWalking((prev) => !prev);
+    handleFilterChange("status", !isWalking ? "гуляє" : "");
+  };  
 
   const handleGenderChange = (gender: "male" | "female") => {
     setGenderFilter((prev) => {
@@ -282,7 +299,7 @@ const FilterModal: React.FC<FilterModalProps> = ({
             }}
           >
             <Text style={{ color: "black", textAlign: "center" }}>
-              Вік у роках
+              Вік у місяцях
             </Text>
           </TouchableOpacity>
 
@@ -370,7 +387,6 @@ const FilterModal: React.FC<FilterModalProps> = ({
   </TouchableOpacity>
 </View>
 
-
           <Text style={{ marginBottom: 10 }}>Рівень активності:</Text>
           <TextInput
             value={activityLevel}
@@ -399,6 +415,59 @@ const FilterModal: React.FC<FilterModalProps> = ({
               marginBottom: 20,
             }}
           />
+
+<View style={{ flexDirection: "row", alignItems: "center", marginBottom: 20 }}>
+  <TouchableOpacity onPress={handleCastratedChange} style={{ flexDirection: "row", alignItems: "center", marginRight: 30 }}>
+    <View
+      style={{
+        width: 20,
+        height: 20,
+        borderRadius: 5,
+        borderWidth: 1,
+        borderColor: "gray",
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: isCastrated ? "#FF6C22" : "white",
+      }}
+    />
+    <Text style={{ marginLeft: 8 }}>Тільки кастровані</Text>
+  </TouchableOpacity>
+
+  <TouchableOpacity onPress={handleNoHeatChange} style={{ flexDirection: "row", alignItems: "center" }}>
+    <View
+      style={{
+        width: 20,
+        height: 20,
+        borderRadius: 5,
+        borderWidth: 1,
+        borderColor: "gray",
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: noHeat ? "#FF6C22" : "white",
+      }}
+    />
+    <Text style={{ marginLeft: 8 }}>Тільки без течки</Text>
+  </TouchableOpacity>
+</View>
+
+<View style={{ flexDirection: "row", alignItems: "center", marginBottom: 20 }}>
+  <TouchableOpacity onPress={handleWalkingChange} style={{ flexDirection: "row", alignItems: "center" }}>
+    <View
+      style={{
+        width: 20,
+        height: 20,
+        borderRadius: 5,
+        borderWidth: 1,
+        borderColor: "gray",
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: isWalking ? "#FF6C22" : "white",
+      }}
+    />
+    <Text style={{ marginLeft: 8 }}>Зараз гуляють</Text>
+  </TouchableOpacity>
+</View>
+
 
           <TouchableOpacity
             onPress={async () => {

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Dog, match_dogs } from "@/dogMatching";
 import { useMatchingStore } from "@/store/matchingStore";
 
-const SERVER_URL = "http://192.168.0.18:3000";
+const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL || "http://192.168.0.18:3000";
 
 interface UserResource {
   id: string;

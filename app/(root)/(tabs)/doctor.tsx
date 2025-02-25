@@ -15,7 +15,7 @@ type MedicalRecord = {
   type: 'vaccination' | 'protection';
 };
 
-const SERVER_URL = "http://192.168.0.18:3000";
+const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL || "http://192.168.0.18:3000";
 
 
 const Doctor = () => {
@@ -106,21 +106,105 @@ const Doctor = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...newRecord, clerkId: user?.id }),
       });
-
+  
       if (!response.ok) throw new Error('Failed to add medical record');
-
-      const data: MedicalRecord = await response.json();
+  
+      const data: any = await response.json();
+  
+      console.log("🟢 Новая запись:", data);
+  
+      const formatDate = (dateString: string | null) => {
+        if (!dateString) return null;
+        const [month, day, year] = dateString.split('/');
+        return new Date(`${year}-${month}-${day}`);
+      };
+  
+      const formattedRecord: MedicalRecord = {
+        id: data.id,
+        name: data.name,
+        lastDate: data.lastdate ? new Date(data.lastdate).toISOString() : null,
+        nextDate: data.nextdate ? new Date(data.nextdate).toISOString() : null,
+        type: data.type,
+      };      
+  
+      console.log("🟡 Отформатированная запись:", formattedRecord);
+  
       if (data.type === 'vaccination') {
-        setVaccinations(prev => [...prev, data]);
+        setVaccinations(prev => [...prev, formattedRecord]);
       } else if (data.type === 'protection') {
-        setProtections(prev => [...prev, data]);
+        setProtections(prev => [...prev, formattedRecord]);
       }
     } catch (error) {
       console.error('Error adding medical record:', error);
       Alert.alert('Ошибка', 'Не удалось добавить запись');
     }
   };
+  
+  const updateSterilizationStatus = async (castrated: boolean, inHeat: boolean) => {
+    if (!user?.id) return;
+  
+    try {
+      console.log("🔄 Отправка запроса:", { clerkId: user.id, castrated, inHeat });
+  
+      const response = await fetch(`${SERVER_URL}/api/dogs/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clerkId: user.id, castrated, inHeat }),
+      });
+  
+      if (!response.ok) {
+        throw new Error("Ошибка обновления статуса кастрации и течки");
+      }
+  
+      const updatedData = await response.json();
+      console.log("✅ Обновленный статус собаки:", updatedData);
+  
+      // После обновления запрашиваем актуальные данные
+      fetchUserDogData();
+    } catch (error) {
+      console.error("Ошибка обновления статуса:", error);
+      Alert.alert("Ошибка", "Не удалось обновить статус кастрации и течки");
+    }
+  };
+  
+  const fetchUserDogData = async () => {
+    if (!user?.id) return;
+  
+    try {
+      const response = await fetch(`${SERVER_URL}/api/dogs/user?clerkId=${user.id}`);
+      if (!response.ok) throw new Error("Ошибка загрузки данных собаки");
+  
+      const data = await response.json();
+      console.log("📌 Получены данные собаки:", data);
+  
+      if (data.length > 0) {
+        setIsSterilized(data[0].castrated);
+        setIsInHeat(data[0].in_heat);
+      }
+    } catch (error) {
+      console.error("Ошибка загрузки данных собаки:", error);
+    }
+  };
+  
 
+  const handleSterilizationChange = () => {
+    setIsSterilized(prev => {
+      const newStatus = !prev;
+      updateSterilizationStatus(newStatus, isInHeat);
+      console.log("Смена кастрации:", { isSterilized: !isSterilized, isInHeat });
+      return newStatus;
+    });
+  };
+  
+  const handleHeatChange = () => {
+    setIsInHeat(prev => {
+      const newHeatStatus = !prev;
+      updateSterilizationStatus(isSterilized, newHeatStatus);
+      console.log("Смена течки:", { isSterilized, isInHeat: !isInHeat });
+      return newHeatStatus;
+    });
+  };
+  
   const renderMedicalRecordHeader = () => (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8 }}>
       <Text style={{ flex: 1, fontWeight: 'bold', textAlign: 'left' }}>Назва</Text>
@@ -159,10 +243,10 @@ const Doctor = () => {
       <Text style={{ fontSize: 22, fontWeight: 'bold', textAlign: 'center', marginVertical: 20 }}>Медичні дані</Text>
       <SterilizationToggle
         isSterilized={isSterilized}
-        setIsSterilized={setIsSterilized}
-        gender={gender ?? "female"} 
+        setIsSterilized={handleSterilizationChange} 
+        gender={gender ?? "female"}
         isInHeat={isInHeat}
-        setIsInHeat={setIsInHeat}
+        setIsInHeat={handleHeatChange} 
       />
 
       <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 10 }}>Вакцинації</Text>

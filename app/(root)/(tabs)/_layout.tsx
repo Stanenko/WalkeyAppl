@@ -2,11 +2,21 @@ import { Tabs } from "expo-router";
 import { createStackNavigator } from '@react-navigation/stack';
 import WalkEndScreen from '@/app/(root)/(modal)/WalkEndScreen';
 import HomeNotificationModal from '@/app/(root)/(modal)/HomeNotificationModal';
+import ChatScreen from '@/app/(root)/(modal)/ChatScreen';
+import { RouteProp } from "@react-navigation/native";
 
 import { View } from "react-native";
-import { icons } from "@/constants/svg"; 
+import { icons } from "@/constants/svg";
 
-const Stack = createStackNavigator();
+type RootStackParamList = {
+  Tabs: undefined;
+  WalkEndScreen: undefined;
+  HomeNotificationModal: undefined;
+  ChatScreen: { chatId: string; receiverId: string };
+};
+
+const Stack = createStackNavigator<RootStackParamList>();
+
 
 const TabIcon = ({
     IconComponent,
@@ -140,6 +150,27 @@ const Layout = () => (
         cardStyle: { backgroundColor: 'rgba(0, 0, 0, 0.5)' },
     }}
     />
+
+<Stack.Screen
+  name="ChatScreen"
+  component={ChatScreen}
+  options={{
+    headerShown: false, 
+    presentation: 'modal', 
+    cardStyleInterpolator: ({ current, layouts }) => ({
+      cardStyle: {
+        transform: [
+          {
+            translateY: current.progress.interpolate({
+              inputRange: [0, 1],
+              outputRange: [layouts.screen.height, 0],
+            }),
+          },
+        ],
+      },
+    }),
+  }} 
+/>
 
 
   </Stack.Navigator>
