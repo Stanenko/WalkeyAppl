@@ -8,7 +8,6 @@ interface MatchingStore {
   resetMatching: () => void;
 }
 
-// ✅ Кастомное хранилище для AsyncStorage
 const zustandStorage: PersistStorage<MatchingStore> = {
   getItem: async (name) => {
     const item = await AsyncStorage.getItem(name);

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Dog, match_dogs } from "@/dogMatching";
 import { useMatchingStore } from "@/store/matchingStore";
 
-const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL || "http://192.168.0.18:3000";
+const SERVER_URL = "https://walkey-production.up.railway.app";
 
 interface UserResource {
   id: string;
@@ -36,7 +36,7 @@ interface DogInterface {
 const useFetchDogs = (user: UserResource | null, SERVER_URL: string) => {
   const [dogs, setDogs] = useState<DogInterface[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const { setMatching } = useMatchingStore(); // ✅ Используем Zustand
+  const { setMatching } = useMatchingStore(); 
 
   useEffect(() => {
     const fetchData = async () => {
@@ -86,15 +86,14 @@ const useFetchDogs = (user: UserResource | null, SERVER_URL: string) => {
 
         console.log("🐶 Данные пользователя:", myDog);
 
-        // ✅ Добавляем обработку ID
         const allDogs = dogsData.map((dog, index) => ({
           ...dog,
           dog_id: dog.dog_id || `generated_${index}`,
-          name: dog.name || "Без имени", // ✅ Добавлено
+          name: dog.name || "Без имени", 
           similarity_percentage: dog.similarity_percentage ?? 0,
           latitude: parseFloat(dog.latitude?.toString() || "0"),
           longitude: parseFloat(dog.longitude?.toString() || "0"),
-          status: dog.status ?? "вдома", // ✅ Статус добавлен
+          status: dog.status ?? "вдома",
         }));        
             
 
@@ -107,11 +106,9 @@ const useFetchDogs = (user: UserResource | null, SERVER_URL: string) => {
           }))
         );
 
-        // ✅ Рассчитываем метчинг
         const matchedDogs = match_dogs(myDog, allDogs, 500);
         console.log("✅ Совпадения собак:", matchedDogs);
 
-        // ✅ Обновляем Zustand (если ID есть)
         matchedDogs.forEach((dog) => {
           if (dog.dog_id && typeof dog.dog_id === "string") {
             console.log(`🔹 Устанавливаем метчинг для ${dog.name} (ID: ${dog.dog_id}): ${dog.similarity_percentage}%`);
@@ -121,7 +118,6 @@ const useFetchDogs = (user: UserResource | null, SERVER_URL: string) => {
           }
         });
 
-        // ✅ Обновляем список собак в стейте
         setDogs(matchedDogs);
       } catch (error) {
         console.error("❌ Ошибка загрузки данных:", error);

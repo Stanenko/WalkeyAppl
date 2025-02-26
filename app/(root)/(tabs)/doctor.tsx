@@ -15,7 +15,7 @@ type MedicalRecord = {
   type: 'vaccination' | 'protection';
 };
 
-const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL || "http://192.168.0.18:3000";
+const SERVER_URL = "https://walkey-production.up.railway.app";
 
 
 const Doctor = () => {
@@ -111,8 +111,6 @@ const Doctor = () => {
   
       const data: any = await response.json();
   
-      console.log("🟢 Новая запись:", data);
-  
       const formatDate = (dateString: string | null) => {
         if (!dateString) return null;
         const [month, day, year] = dateString.split('/');
@@ -126,8 +124,6 @@ const Doctor = () => {
         nextDate: data.nextdate ? new Date(data.nextdate).toISOString() : null,
         type: data.type,
       };      
-  
-      console.log("🟡 Отформатированная запись:", formattedRecord);
   
       if (data.type === 'vaccination') {
         setVaccinations(prev => [...prev, formattedRecord]);
@@ -144,8 +140,6 @@ const Doctor = () => {
     if (!user?.id) return;
   
     try {
-      console.log("🔄 Отправка запроса:", { clerkId: user.id, castrated, inHeat });
-  
       const response = await fetch(`${SERVER_URL}/api/dogs/status`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -159,7 +153,6 @@ const Doctor = () => {
       const updatedData = await response.json();
       console.log("✅ Обновленный статус собаки:", updatedData);
   
-      // После обновления запрашиваем актуальные данные
       fetchUserDogData();
     } catch (error) {
       console.error("Ошибка обновления статуса:", error);

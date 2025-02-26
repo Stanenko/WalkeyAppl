@@ -87,7 +87,6 @@ const AddProtectionModal: React.FC<AddProtectionModalProps> = ({ isVisible, onCl
 
     const recordData = { type: 'protection', name, lastDate, nextDate };
     try {
-      console.log('Дані для додавання:', recordData);
       await onAddRecord(recordData);
       onClose();
       setName('');

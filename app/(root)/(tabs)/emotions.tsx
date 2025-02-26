@@ -9,8 +9,9 @@ import NotificationsModal from "@/app/(root)/(modal)/NotificationsModal";
 import InviteFriendModal from "@/app/(root)/(modal)/InviteFriendModal";
 import FriendsModal from "@/app/(root)/(modal)/FriendsModal";
 import SubscriptionModal from "@/app/(root)/(modal)/SubscriptionModal";
+import { Alert } from "react-native";
 
-const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL || "http://192.168.0.18:3000";
+const SERVER_URL = "https://walkey-production.up.railway.app";
 
 
 interface ProfileItem {
@@ -35,24 +36,23 @@ const Emotions = () => {
   useEffect(() => {
     const fetchUserData = async () => {
       if (!user || !user.id) return;
-
+  
       try {
         const response = await fetch(`${SERVER_URL}/api/user?clerkId=${user.id}`);
+        if (!response.ok) throw new Error("Помилка сервера");
+  
         const data = await response.json();
-        if (response.ok) {
-          setUserName(data.name || "Ім'я не вказано");
-        } else {
-          console.error("Ошибка сервера:", data.error);
-        }
+        setUserName(data.name || "Ім'я не вказано");
       } catch (error) {
-        console.error("Ошибка при запросе данных пользователя:", error);
+        Alert.alert("Помилка", "Не вдалося завантажити дані користувача. Спробуйте пізніше.");
       } finally {
         setLoading(false);
       }
     };
-
+  
     fetchUserData();
   }, [user]);
+  
 
   const profileItems: ProfileItem[] = [
     { label: "Загальне", icon: icons.GMainIcon, onPress: () => setIsGeneralModalVisible(true) },

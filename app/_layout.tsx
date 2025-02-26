@@ -63,7 +63,7 @@ function AppContent({ setUserData, setDogsData }: AppContentProps) {
       if (!user || !user.id) return;
 
       try {
-        const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL || "http://192.168.0.18:3000";
+        const SERVER_URL = "https://walkey-production.up.railway.app";
 
         const userResponse = await fetch(
           `${SERVER_URL}/api/user?clerkId=${user.id}`

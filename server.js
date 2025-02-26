@@ -6,20 +6,47 @@ const multer = require('multer');
 const { Expo } = require('expo-server-sdk');
 const admin = require("./firebaseAdmin");
 const bucket = admin.storage().bucket();
-const upload = multer({ storage: multer.memoryStorage() });
 const path = require('path');
 const cors = require('cors');
 const http = require('http');
+const morgan = require("morgan");
+const { body, validationResult } = require("express-validator");
 
 const sql = neon(process.env.DATABASE_URL);
 const expo = new Expo();
 const app = express();
 
+const helmet = require("helmet");
+const compression = require("compression");
+
 app.use(express.json());
 app.use(cors({
-  origin: "*", 
-  methods: ["GET", "POST", "PATCH", "OPTIONS"],
+  origin: ["https://walkey.com", "https://walkey-production.up.railway.app"],
+  methods: ["GET", "POST", "PATCH"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true
 }));
+
+app.use(express.json({ limit: "1mb" })); 
+app.use(express.urlencoded({ extended: true, limit: "1mb" }));
+
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://trusted-cdn.com"],
+      imgSrc: ["'self'", "data:", "https://firebasestorage.googleapis.com"],
+      connectSrc: ["'self'", "https://walkey.com", "https://walkey-production.up.railway.app", "https://firebasestorage.googleapis.com"],
+      frameAncestors: ["'none'"], 
+      upgradeInsecureRequests: [],
+    }
+  },
+  frameguard: { action: "deny" },
+  referrerPolicy: { policy: "no-referrer" },
+  hidePoweredBy: true
+}));
+
+app.use(compression());
 
 const fixFirebaseUrl = (url) => {
   if (!url || typeof url !== 'string') {
@@ -34,6 +61,19 @@ const fixFirebaseUrl = (url) => {
   const path = url.replace(`https://storage.googleapis.com/${bucketName}/`, "");
   return `https://firebasestorage.googleapis.com/v0/b/${bucketName}/o/${encodeURIComponent(path)}?alt=media`;
 };
+
+const fileFilter = (req, file, cb) => {
+  if (!file.mimetype.startsWith("image/")) {
+    return cb(new Error("Можно загружать только изображения"), false);
+  }
+  cb(null, true);
+};
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  fileFilter,
+  limits: { fileSize: 5 * 1024 * 1024 }
+});
 
 
 const generateUniqueCode = async () => {
@@ -55,8 +95,62 @@ const generateUniqueCode = async () => {
   return code;
 };
 
+const rateLimit = require("express-rate-limit");
+
+const limiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 300,
+  message: "Дуже багато запросів, спробуйте пізніше",
+  keyGenerator: (req) => req.headers["x-real-ip"] || req.ip,
+  headers: true,
+}); 
+
+app.use(limiter);
+
+app.use(morgan("combined"));
+
+const jwt = require("jsonwebtoken");
+
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1];
+
+  if (!token) {
+    return res.status(401).json({ error: "Нет доступа, требуется авторизация" });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) {
+      console.error("Ошибка верификации токена:", err.message);
+      return res.status(403).json({ error: "Токен истёк или недействителен" });
+    }
+    
+    const now = Math.floor(Date.now() / 1000);
+    if (user.exp && user.exp < now) {
+      return res.status(403).json({ error: "Токен истёк, авторизуйтесь заново" });
+    }
+
+    req.user = user;
+    next();
+  });
+};
+
+app.disable("x-powered-by");
+
+app.use((err, req, res, next) => {
+  console.error("Ошибка:", err.message);
+  if (err instanceof multer.MulterError) {
+    return res.status(400).json({ error: "Ошибка загрузки файла", details: err.message });
+  }
+  if (err.name === "UnauthorizedError") {
+    return res.status(401).json({ error: "Неавторизованный доступ" });
+  }
+  res.status(500).json({ error: "Внутренняя ошибка сервера" });
+});
+
 app.post("/api/upload", upload.single("file"), async (req, res) => {
-  const { clerkId } = req.body; 
+  const { clerkId } = req.body;
+  
   if (!clerkId || !req.file) {
     return res.status(400).json({ error: "Missing required fields" });
   }
@@ -73,25 +167,32 @@ app.post("/api/upload", upload.single("file"), async (req, res) => {
 
     stream.on("error", (err) => {
       console.error("Upload error:", err);
-      res.status(500).json({ error: "Upload failed" });
+      return res.status(500).json({ error: "Ошибка загрузки файла" });
     });
 
     stream.on("finish", async () => {
       const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
 
-      await sql`
-        UPDATE users SET image = ${publicUrl} WHERE clerk_id = ${clerkId};
-      `;
+      try {
+        await sql`
+          UPDATE users SET image = ${publicUrl} WHERE clerk_id = ${clerkId};
+        `;
+      } catch (dbError) {
+        console.error("Ошибка сохранения URL в БД:", dbError);
+        await file.delete();
+        return res.status(500).json({ error: "Ошибка сохранения в базе данных" });
+      }
 
       res.status(200).json({ success: true, url: publicUrl });
     });
 
     stream.end(req.file.buffer);
   } catch (error) {
-    console.error("Error uploading file:", error);
-    res.status(500).json({ error: "Server error" });
+    console.error("Ошибка при загрузке файла:", error);
+    res.status(500).json({ error: "Внутренняя ошибка сервера" });
   }
 });
+
 
 app.get("/api/user/image", async (req, res) => {
   const { clerkId } = req.query;
@@ -120,17 +221,24 @@ app.get("/api/test", (req, res) => {
   res.json({ message: "Локальный сервер работает!" });
 });
 
-app.post('/api/user', async (req, res) => {
-  const { name, email, clerkId, gender, birthDate, breed, image, activityLevel } = req.body;
-  console.log("Received data:", req.body);
-
-  if (!name || !email || !clerkId || !gender || !birthDate || !breed || !activityLevel) {
-      return res.status(400).json({ error: "Missing required fields" });
+app.post('/api/user', [
+  body('name').trim().notEmpty().withMessage('Імя обовязкове для введення'),
+  body('email').isEmail().withMessage('Некоректный email'),
+  body('clerkId').trim().notEmpty().withMessage('clerkId обовязковий'),
+  body('gender').isIn(['male', 'female']).withMessage('Невірний пол'),
+  body('birthDate').isISO8601().withMessage('Дата народження повинна бути у форматі YYYY-MM-DD'),
+  body('breed').trim().notEmpty().withMessage('Порода обовязкова'),
+  body('activityLevel').isInt({ min: 1, max: 10 }).withMessage('Рівень активности повинен бути від 1 до 10')
+], async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
   }
 
+  const { name, email, clerkId, gender, birthDate, image } = req.body;
+  
   try {
       const uniqueCode = await generateUniqueCode();
-
 
       await sql`
           INSERT INTO users (name, email, clerk_id, gender, birth_date, image, unique_code)
@@ -138,15 +246,7 @@ app.post('/api/user', async (req, res) => {
           ON CONFLICT (clerk_id) DO NOTHING;
       `;
 
-   
-      const response = await sql`
-          INSERT INTO dogs (clerk_id, breed, activity_level)
-          VALUES (${clerkId}, ${breed}, ${activityLevel})
-          RETURNING *;
-      `;
-
-      console.log("Inserted data into database:", response);
-      res.status(201).json({ success: true, data: response });
+      res.status(201).json({ success: true });
   } catch (error) {
       console.error("Error saving data to database:", error);
       res.status(500).json({ error: "Internal Server Error" });
@@ -248,7 +348,7 @@ app.get('/api/dogs/matched', async (req, res) => {
 });
 
 
-app.post('/api/dog', async (req, res) => {
+app.post('/api/dog', authenticateToken, async (req, res) => {
   const { clerkId, breed, age, weight, emotionalStatus, activityLevel, vaccinationStatus } = req.body;
 
   if (!clerkId || !breed || !age || !weight || !emotionalStatus || !activityLevel || !vaccinationStatus) {
@@ -306,7 +406,7 @@ app.get('/api/user', async (req, res) => {
   }
 });
 
-app.patch('/api/user', async (req, res) => {
+app.patch('/api/user', authenticateToken, async (req, res) => {
   const { clerkId, birthDate } = req.body;
 
   if (!clerkId || !birthDate) {
@@ -331,7 +431,7 @@ app.patch('/api/user', async (req, res) => {
 });
 
 
-app.patch('/api/user/image', upload.single('image'), async (req, res) => {
+app.patch('/api/user/image', authenticateToken, upload.single('image'), async (req, res) => {
   const { clerkId } = req.body;
 
   if (!clerkId || !req.file) {
@@ -362,7 +462,7 @@ app.patch('/api/user/image', upload.single('image'), async (req, res) => {
 
 
 
-app.patch('/api/user/location', async (req, res) => {
+app.patch('/api/user/location', authenticateToken, async (req, res) => {
   const { clerkId, latitude, longitude } = req.body;
 
   if (!clerkId || !latitude || !longitude) {
@@ -384,7 +484,7 @@ app.patch('/api/user/location', async (req, res) => {
   }
 });
 
-app.get('/api/user/location', async (req, res) => {
+app.get('/api/user/location', authenticateToken, async (req, res) => {
   const { clerkId } = req.query;
 
   if (!clerkId) {
@@ -409,7 +509,7 @@ app.get('/api/user/location', async (req, res) => {
   }
 });
 
-app.get('/api/users/locations', async (req, res) => {
+app.get('/api/users/locations', authenticateToken, async (req, res) => {
 const { clerkId, breed, maxAge, minAge, gender, castrated, noHeat, status } = req.query;
 
 if (!clerkId) {
@@ -417,12 +517,6 @@ if (!clerkId) {
 }
 
 try {
-  console.log('Фильтр породы:', breed);
-  console.log('ID пользователя:', clerkId);
-  console.log('Пол:', gender);
-  console.log('Максимальный возраст:', maxAge);
-  console.log('Минимальный возраст:', minAge);
-
   const userLocationQuery = await sql`
     SELECT latitude, longitude FROM user_locations WHERE clerk_id = ${clerkId};
   `;
@@ -449,8 +543,6 @@ try {
   AND (COALESCE(${status}, '') = '' OR d.status = ${status}) 
   ORDER BY distance ASC;
 `;
-
-  console.log('Результаты запроса собак:', dogsQuery);
   
 
   if (dogsQuery.length === 0) {
@@ -465,7 +557,7 @@ try {
 });
 
 // "vaccination" and "protection"
-app.get('/api/medical/records', async (req, res) => {
+app.get('/api/medical/records', authenticateToken, async (req, res) => {
   const { type, clerkId } = req.query;
 
   if (!clerkId) {
@@ -484,16 +576,14 @@ app.get('/api/medical/records', async (req, res) => {
   }
 });
 
-app.get('/api/vaccinations', async (req, res) => {
+app.get('/api/vaccinations', authenticateToken, async (req, res) => {
   const { clerkId } = req.query;
-  console.log("Received clerkId:", clerkId); 
 
   if (!clerkId) {
     return res.status(400).json({ error: 'clerkId is required' });
   }
 
   try {
-    console.log("Executing SQL query for clerkId:", clerkId);
     const vaccinations = await sql`
       SELECT name, type, lastdate, nextdate
       FROM medical_records
@@ -517,7 +607,7 @@ app.get('/api/vaccinations', async (req, res) => {
     return regex.test(dateString);
   };
   
-  app.post('/api/medical/record', async (req, res) => {
+  app.post('/api/medical/record', authenticateToken, async (req, res) => {
     const { clerkId, type, name, lastDate, nextDate } = req.body;
 
     if (!clerkId || !type || !name || !lastDate || !nextDate) {
@@ -540,7 +630,7 @@ app.get('/api/vaccinations', async (req, res) => {
     }
 });
 
-app.patch('/api/dogs/status', async (req, res) => {
+app.patch('/api/dogs/status', authenticateToken, async (req, res) => {
   const { clerkId, status, castrated, inHeat } = req.body;
 
   if (!clerkId) {
@@ -570,7 +660,7 @@ app.patch('/api/dogs/status', async (req, res) => {
 });
 
 
-app.get("/api/db-check", async (req, res) => {
+app.get("/api/db-check", authenticateToken, async (req, res) => {
   try {
     const result = await sql`SELECT NOW() AS current_time;`;
     res.status(200).json({ message: "DB connection successful!", time: result[0].current_time });
@@ -599,7 +689,7 @@ app.post('/api/walks', async (req, res) => {
   }
 });
 
-app.get('/api/walks', async (req, res) => {
+app.get('/api/walks', authenticateToken, async (req, res) => {
   const { clerkId } = req.query;
 
   if (!clerkId) {
@@ -625,7 +715,7 @@ app.get('/api/walks', async (req, res) => {
   }
 });
 
-app.delete('/api/walks/:id', async (req, res) => {
+app.delete('/api/walks/:id', authenticateToken, async (req, res) => {
   const { id } = req.params;
   const { clerkId } = req.query;
 
@@ -656,7 +746,7 @@ app.delete('/api/walks/:id', async (req, res) => {
   }
 });
   
-app.post('/api/save-token', async (req, res) => {
+app.post('/api/save-token', authenticateToken, async (req, res) => {
   const { clerkId, pushToken } = req.body;
 
   if (!clerkId || !pushToken) {
@@ -664,8 +754,6 @@ app.post('/api/save-token', async (req, res) => {
   }
 
   try {
-    console.log(`Received clerkId: ${clerkId}`);
-    console.log(`Executing SQL query for clerkId: ${clerkId}`);
 
     await sql`
       INSERT INTO user_tokens (clerk_id, fcm_token)
@@ -687,7 +775,7 @@ if (!admin.apps.length) {
   });
 }
 
-app.post("/api/friends/request", async (req, res) => {
+app.post("/api/friends/request", authenticateToken, async (req, res) => {
   const { senderId, receiverCode } = req.body;
 
   if (!senderId || !receiverCode) {
@@ -727,7 +815,6 @@ app.post("/api/friends/request", async (req, res) => {
     };
 
     const tickets = await expo.sendPushNotificationsAsync([message]);
-    console.log("Уведомление отправлено:", tickets);
 
     await sql`
       INSERT INTO notifications (receiver_id, sender_id, title, body, created_at)
@@ -741,7 +828,7 @@ app.post("/api/friends/request", async (req, res) => {
   }
 });
 
-app.post('/send-notification', async (req, res) => {
+app.post('/send-notification', authenticateToken, async (req, res) => {
   const { to, title, body } = req.body;
 
   if (!Expo.isExpoPushToken(to)) {
@@ -758,7 +845,6 @@ app.post('/send-notification', async (req, res) => {
 
   try {
       const ticket = await expo.sendPushNotificationsAsync(messages);
-      console.log('Notification sent:', ticket);
       res.status(200).json({ success: true, ticket });
   } catch (error) {
       console.error('Error sending notification:', error);
@@ -766,9 +852,8 @@ app.post('/send-notification', async (req, res) => {
   }
 });
 
-app.get("/api/notifications", async (req, res) => {
+app.get("/api/notifications", authenticateToken, async (req, res) => {
   const { receiverId } = req.query;
-  console.log("Received receiverId:", receiverId);
 
   if (!receiverId) {
     return res.status(400).json({ error: "Не указан receiverId" });
@@ -789,10 +874,8 @@ app.get("/api/notifications", async (req, res) => {
 });
 
 
-app.post('/api/chats', async (req, res) => {
+app.post('/api/chats', authenticateToken, async (req, res) => {
   const { user1_id, user2_id } = req.body;
-
-  console.log("Received body:", req.body); // 👉 Добавлено для отладки
 
   if (!user1_id || !user2_id) {
     return res.status(400).json({ error: "Оба user1_id и user2_id обязательны" });
@@ -823,7 +906,7 @@ app.post('/api/chats', async (req, res) => {
 });
 
  
-app.get('/api/chats/:userId', async (req, res) => {
+app.get('/api/chats/:userId', authenticateToken, async (req, res) => {
   const { userId } = req.params;
 
   if (!userId) {
@@ -845,7 +928,7 @@ app.get('/api/chats/:userId', async (req, res) => {
 });
 
  
-app.post('/api/messages', async (req, res) => {
+app.post('/api/messages', authenticateToken, async (req, res) => {
   const { chat_id, sender_id, receiver_id, text } = req.body;
 
   if (!chat_id || !sender_id || !receiver_id || !text) {
@@ -866,7 +949,7 @@ app.post('/api/messages', async (req, res) => {
   }
 });
 
-app.get('/api/messages/:chatId', async (req, res) => {
+app.get('/api/messages/:chatId', authenticateToken, async (req, res) => {
   const { chatId } = req.params;
 
   if (!chatId) {

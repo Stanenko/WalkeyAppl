@@ -16,7 +16,7 @@ import { useToggleStore } from "@/store/toggleStore";
 import useFetchDogs from "@/hooks/useFetchDogs";
 import { useMatchingStore } from '@/store/matchingStore';
 
-const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL || "http://192.168.0.18:3000";
+const SERVER_URL = "https://walkey-production.up.railway.app";
 
 const fetchDataFromAPI = async (url: string, errorMessage: string): Promise<any> => {
   try {
@@ -259,17 +259,12 @@ const SliderComponent: React.FC<SliderComponentProps> = ({ clerkId }) => {
         let vaccinationData = vaccinationResponse.ok ? await vaccinationResponse.json() : [];
         let protectionData = protectionResponse.ok ? await protectionResponse.json() : [];
   
-        console.log("🚀 Vaccination Data:", vaccinationData);
-        console.log("🚀 Protection Data:", protectionData);
-  
         const today = new Date();
         vaccinationData = vaccinationData.filter((item: { nextdate: string }) => {
-          console.log("Checking nextdate:", item.nextdate);
           return item.nextdate && new Date(item.nextdate) >= today;
         });
   
         protectionData = protectionData.filter((item: { nextdate: string }) => {
-          console.log("Checking protection nextdate:", item.nextdate);
           return item.nextdate && new Date(item.nextdate) >= today;
         });
   
@@ -332,11 +327,10 @@ const SliderComponent: React.FC<SliderComponentProps> = ({ clerkId }) => {
             icon: icons.GPlusIcon,
           });
         }
-  
-        console.log("📌 Slides data before setting state:", slides);
+
         setSlidesData(slides);
       } catch (error) {
-        console.error("❌ Ошибка загрузки данных:", error);
+        console.error("Ошибка загрузки данных:", error);
       }
     };
   
@@ -424,10 +418,6 @@ const Home = () => {
   const [isWalkModalVisible, setWalkModalVisible] = useState(false);
   const [isLoadingUser, setIsLoadingUser] = useState(true);
 
-
-  useEffect(() => {
-    console.log("Clerk ID:", user?.id);
-  }, [user]);
 
   const showNotification = (text: string) => {
     setNotification({ isVisible: true, message: text });
@@ -530,7 +520,6 @@ const Home = () => {
   const copyToClipboard = async (text: string): Promise<void> => {
     try {
       await Clipboard.setStringAsync(text);
-      console.log('ID скопирован:', text);
     } catch (error) {
       console.error('Ошибка копирования в буфер обмена:', error);
     }
@@ -560,7 +549,7 @@ const Home = () => {
           setBreed(userData.breed || "Не указано");
         }
       } catch (error) {
-        console.error("Ошибка загрузки данных:", error);
+        setNotification({ isVisible: true, message: "Помилка завантаження даних." });
       }
     };
   
@@ -569,15 +558,6 @@ const Home = () => {
     }
   }, [user?.id]);
   
-
-  useEffect(() => {
-    console.log("Current dogs state:", dogs);
-  }, [dogs]);
-
-  useEffect(() => {
-    console.log("Current dogs state:", dogs);
-  }, [dogs]);
-
 
   useEffect(() => {
     if (!isToggled && wasToggledOn.current) {
@@ -591,11 +571,6 @@ const Home = () => {
     setIsToggled(!isToggled);
   };
   
-
-  console.log("Собаки после расчета метчинга:", dogs);
-
-
-
   const formatBirthDate = (dateString: string): string => {
     const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
     return new Date(dateString).toLocaleDateString('uk-UA', options);
@@ -642,7 +617,6 @@ const Home = () => {
             />
             <TouchableOpacity
               onPress={() => {
-                console.log("Bell icon clicked");
                 navigation.navigate('HomeNotificationModal');
               }}
             >

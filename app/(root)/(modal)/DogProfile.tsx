@@ -8,7 +8,7 @@ import { useNavigation } from "@react-navigation/native";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { useRouter } from "expo-router";
 
-const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL || "http://192.168.0.18:3000";
+const SERVER_URL = "https://walkey-production.up.railway.app";
 
 type RootStackParamList = {
   ChatScreen: { chatId: string; receiverId: string };
@@ -39,7 +39,6 @@ interface DogProfileModalProps {
 }
 
 const DogProfileModal: React.FC<DogProfileModalProps> = ({ isVisible, onClose, dog }) => {
-  console.log("🐶 Текущая собака в DogProfileModal:", dog);
 
   if (!dog) return null;
 
@@ -49,8 +48,6 @@ const DogProfileModal: React.FC<DogProfileModalProps> = ({ isVisible, onClose, d
   const router = useRouter();
 
   const handleFriendRequest = async () => {
-    console.log("🐶 Текущая собака в DogProfileModal:", dog);
-    console.log("user1_id:", user?.id, "user2_id:", dog?.clerk_id);
   
     if (!user?.id || !dog?.clerk_id) {
       console.error("Ошибка: user1_id или user2_id отсутствует!");
@@ -68,7 +65,6 @@ const DogProfileModal: React.FC<DogProfileModalProps> = ({ isVisible, onClose, d
       });
   
       const data = await response.json();
-      console.log("Response from /api/chats:", data);
   
       if (data.chatId) {
         onClose(); 

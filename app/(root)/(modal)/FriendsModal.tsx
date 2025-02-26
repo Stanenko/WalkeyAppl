@@ -22,7 +22,7 @@ interface User {
   name: string;
 }
 
-const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL || "http://192.168.0.18:3000";
+const SERVER_URL = "https://walkey-production.up.railway.app";
 
 const FriendsModal: React.FC<FriendsModalProps> = ({ isVisible, onClose }) => {
   const [isAddFriendModalVisible, setIsAddFriendModalVisible] = useState(false);

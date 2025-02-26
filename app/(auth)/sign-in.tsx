@@ -7,7 +7,7 @@ import { useRouter } from "expo-router";
 import { icons } from "@/constants/svg";
 import { useUserStore } from "../../store/userStore";
 
-const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL || "http://192.168.0.18:3000";
+const SERVER_URL = "https://walkey-production.up.railway.app";
 
 const SignIn = () => {
   const { isLoaded, signIn } = useSignIn();
@@ -18,7 +18,6 @@ const SignIn = () => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // ✅ Обработчик входа
   const handleSignIn = async () => {
     if (!isLoaded) return;
   
@@ -36,13 +35,11 @@ const SignIn = () => {
       });
   
       if (result.status === "complete") {
-        console.log("✅ Успешный вход:", result);
+        console.log("Успешный вход:", result);
         Alert.alert("Успіх", "Вхід виконано успішно.");
-  
-        // ✅ Сохраняем Clerk ID в Zustand
-        setUserData({ clerkId: result.identifier });
-  
-        // ✅ Переход на `home`, загрузка данных произойдет там
+
+        setUserData({ clerkId: result.identifier ?? undefined });
+
         router.replace("/(root)/(tabs)/home");
       } else {
         Alert.alert("Помилка", "Невірні дані для входу.");

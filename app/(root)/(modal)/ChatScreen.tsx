@@ -5,7 +5,7 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { useLocalSearchParams } from "expo-router";
 
 
-const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL || "http://192.168.0.18:3000";
+const SERVER_URL = "https://walkey-production.up.railway.app";
 
 const ChatScreen = () => {
   const { user } = useUser();
@@ -16,8 +16,6 @@ const ChatScreen = () => {
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const { chatId, receiverId } = useLocalSearchParams<{ chatId: string; receiverId: string }>();
-
-  console.log("chatId:", chatId, "receiverId:", receiverId);
 
   useEffect(() => {
     if (!chatId) return;

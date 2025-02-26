@@ -18,7 +18,7 @@ import { uploadImageToFirebase } from "@/utils/firebaseStorageUtils";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { router } from "expo-router"; 
 
-const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL || "http://192.168.0.18:3000";
+const SERVER_URL = "https://walkey-production.up.railway.app";
 
 type RootStackParamList = {
   welcome: undefined;
@@ -120,8 +120,6 @@ const GeneralModal: React.FC<GeneralModalProps> = ({ isVisible, onClose }) => {
           type: "image/jpeg",
         } as any);
         formData.append("clerkId", user?.id || "");
-  
-        console.log("FormData для отправки:", formData);
   
         const response = await fetch(`${SERVER_URL}/api/upload`, {
           method: "POST",

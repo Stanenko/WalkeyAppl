@@ -16,7 +16,7 @@ import { getServerUrl } from "@/utils/getServerUrl";
 import { useRef } from "react";
 
 
-const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL || "http://192.168.0.18:3000";
+const SERVER_URL = "https://walkey-production.up.railway.app";
 
 
 const SignUp = () => {
@@ -144,8 +144,6 @@ const SignUp = () => {
             if (completeSignUp.status === 'complete') {
                 const userId = signUp.createdUserId; 
                 if (userId) {
-                    console.log("User ID from Clerk:", userId);
-                    console.log("Session ID from Clerk:", completeSignUp.createdSessionId);
                     setClerkId(userId);
                     setStep(3);
                 } else {
@@ -194,20 +192,6 @@ const SignUp = () => {
       
         try {
           const formattedBirthDate = formatDate();
-          console.log("Дата рождения:", formattedBirthDate);
-
-          console.log("Отправка данных:", JSON.stringify({
-            name: form.name,
-            email: form.email,
-            clerkId: clerkId,
-            gender: form.gender,
-            birthDate: formattedBirthDate,
-            breed: form.breed,
-            image: form.image || null,
-            activityLevel: form.activityLevel,
-          }));
-          
-          console.log("Server URL:", getServerUrl());
 
           const response = await fetch(`${SERVER_URL}/api/user`, {
             method: "POST",
@@ -229,47 +213,12 @@ const SignUp = () => {
             }
         
             const responseData = await response.json();
-            console.log("Response Data:", responseData);
         
           })
           .catch((error) => {
             console.error("Ошибка запроса:", error.message);
           }); 
-{/*           
-      
-          // Создание пользователя
-          await fetchAPI("/(api)/user", {
-            method: "POST",
-            body: JSON.stringify({
-              name: form.name,
-              email: form.email,
-              clerkId: clerkId,
-              gender: form.gender,
-              birthDate: formattedBirthDate,
-              image: form.image || null, // Поддержка необязательного поля
-            }),
-          });
-      
-          // Создание собаки
-          await fetchAPI("/(api)/dog", {
-            method: "POST",
-            body: JSON.stringify({
-              clerkId: clerkId,
-              breed: form.breed,
-              age: form.birthYear
-                ? parseInt(new Date().getFullYear() - form.birthYear)
-                : null, // Рассчитываем возраст
-              weight: form.weight || null, // Вес необязателен
-              emotionalStatus: form.emotionalStatus || 5, // Эмоциональное состояние по умолчанию
-              activityLevel: form.activityLevel,
-              vaccinationStatus: {
-                rabies: true,
-                distemper: true,
-              },
-              antiTick: true, // Противоклещевой статус
-            }),
-          });
-      */}
+
           await setActive({ session: signUp.createdSessionId });
           Alert.alert("Успіх", "Реєстрація завершена");
           router.push("/(root)/(tabs)/home");

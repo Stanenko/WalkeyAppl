@@ -15,7 +15,7 @@ import { useToggleStore } from "@/store/toggleStore";
 import { useMatchingStore } from "@/store/matchingStore";
 import useFetchDogs from "@/hooks/useFetchDogs";
 
-const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL || "http://192.168.0.18:3000";
+const SERVER_URL = "https://walkey-production.up.railway.app";
 
 interface DogInterface {
   dog_id: string;
@@ -88,7 +88,7 @@ const fetchWithTimeout = async (
     throw error;
   }
 };
-//Змінила від
+
 const fetchOtherUsersLocations = async (clerkId: string, filters: Filters = {}): Promise<DogInterface[]> => {
   try {
     const queryParams = new URLSearchParams();
@@ -116,9 +116,6 @@ const fetchOtherUsersLocations = async (clerkId: string, filters: Filters = {}):
   }
 };
 
-//Змінила до
-
-
 const Map = () => {
   const { userLatitude, userLongitude, setUserLocation } = useLocationStore();
   const isToggled = useToggleStore((state) => state.isToggled);
@@ -135,7 +132,6 @@ const Map = () => {
   const [selectedDog, setSelectedDog] = useState<any | null>(null);
   const [isModalVisible, setIsModalVisible] = useState<boolean>(false);
   const [userImage, setUserImage] = useState<string | null>(null);
-  //Додала
   const mapRef = useRef<MapView | null>(null);
   const [currentRegion, setCurrentRegion] = useState<Region | null>(null);
   const [showMarkerLabels, setShowMarkerLabels] = useState(true);
@@ -175,7 +171,6 @@ const Map = () => {
     const { matchingData } = useMatchingStore.getState();
     console.log("🔍 MatchingData перед открытием:", matchingData);
   
-    // ✅ Теперь matchingData ищется по корректному ID
     const similarity = matchingData[dog.dog_id] ?? dog.similarity_percentage ?? 0;
   
     setSelectedDog({
@@ -192,7 +187,7 @@ const Map = () => {
     setSelectedDog(null);
     setIsModalVisible(false);
   };
-  //Додала
+
   const THRESHOLD = 0.02;
 
  
@@ -205,8 +200,6 @@ const handleRegionChange = (region: Region) => {
     setMapKey((prevKey) => prevKey + 1); 
   }
 };
-
-//Змінила від
 
 const forceUpdateMap = () => {
   setOtherUsersLocations((prev) => [...prev]); 
@@ -267,8 +260,6 @@ const applyFilters = async () => {
     console.error("Ошибка загрузки пользователей:", error);
   }
 };
-
-  //Змінила до
 
   const resetFilters = async () => {
     setFilters({});
@@ -333,12 +324,9 @@ const applyFilters = async () => {
   };
 
   useEffect(() => {
-    if (user?.id) {
-      fetchUserImage(user.id).then((image) => {
-        setUserImage(image);
-      });
-    }
-  }, [user?.id]); 
+    if (!user?.id || userImage) return;
+    fetchUserImage(user.id).then(setUserImage);
+  }, [user?.id]);  
   
   useEffect(() => {
     if (!user?.id) return;
@@ -371,9 +359,13 @@ const applyFilters = async () => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status !== "granted") {
-          setErrorMsg("Доступ до розташування було відхилено");
+          Alert.alert(
+            "Розташування вимкнено",
+            "Для роботи додатку потрібно увімкнути GPS у налаштуваннях.",
+            [{ text: "Відкрити налаштування", onPress: () => Linking.openSettings() }]
+          );
           return;
-        }
+        }        
 
         const lastKnownLocation = await Location.getLastKnownPositionAsync();
         if (lastKnownLocation) {
@@ -485,8 +477,7 @@ const applyFilters = async () => {
   }
 
   const borderColor = location.gender === "female" ? "#FC6FCC" : "#40B3F4";
-
-  if (!location.latitude || !location.longitude || isNaN(Number(location.latitude)) || isNaN(Number(location.longitude))) {
+  if (!location.latitude || !location.longitude || isNaN(parseFloat(location.latitude.toString())) || isNaN(parseFloat(location.longitude.toString()))) {
     console.error(`Invalid coordinates for dog_id: ${location.dog_id}`, location);
     return null;
   }

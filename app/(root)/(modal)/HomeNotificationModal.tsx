@@ -4,7 +4,7 @@ import { useNavigation } from "@react-navigation/native";
 import { useUser } from "@clerk/clerk-expo";
 import { icons } from "@/constants/svg";
 
-const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL || "http://192.168.0.18:3000";
+const SERVER_URL = "https://walkey-production.up.railway.app";
 
 
 interface Notification {
@@ -34,9 +34,7 @@ const HomeNotificationModal: React.FC<HomeNotificationModalProps> = ({
       return;
     }
 
-    console.log("Fetching notifications for user ID:", user.id);
     const url = `${SERVER_URL}/api/notifications?receiverId=${user.id}`;
-    console.log("API URL:", url);
 
     try {
       const response = await fetch(url);
