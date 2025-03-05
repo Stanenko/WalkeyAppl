@@ -21,8 +21,8 @@ const compression = require("compression");
 
 app.use(express.json());
 app.use(cors({
-  origin: ["https://walkey.com", "https://walkey-production.up.railway.app"],
-  methods: ["GET", "POST", "PATCH"],
+  origin: "*", 
+  methods: ["GET", "POST", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true
 }));
@@ -111,29 +111,44 @@ app.use(morgan("combined"));
 
 const jwt = require("jsonwebtoken");
 
-const authenticateToken = (req, res, next) => {
+const authenticateToken = async (req, res, next) => {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
 
   if (!token) {
+    console.error(`Нет токена в заголовках для ${req.originalUrl}`);
     return res.status(401).json({ error: "Нет доступа, требуется авторизация" });
   }
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) {
-      console.error("Ошибка верификации токена:", err.message);
+  console.log(`🔍 Проверка токена для ${req.originalUrl}: ${token}`);
+
+  try {
+    const response = await fetch("https://api.clerk.dev/v1/tokens/verify", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.CLERK_SECRET_KEY}`,
+      },
+      body: JSON.stringify({ token }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.valid) {
+      console.error("❌ Токен недействителен:", data);
       return res.status(403).json({ error: "Токен истёк или недействителен" });
     }
-    
-    const now = Math.floor(Date.now() / 1000);
-    if (user.exp && user.exp < now) {
-      return res.status(403).json({ error: "Токен истёк, авторизуйтесь заново" });
-    }
 
-    req.user = user;
+    console.log(`✅ Токен успешно верифицирован для ${req.originalUrl}`);
+    req.user = data;
     next();
-  });
+  } catch (err) {
+    console.error("❌ Ошибка проверки токена:", err);
+    res.status(500).json({ error: "Ошибка сервера" });
+  }
 };
+
+
 
 app.disable("x-powered-by");
 
@@ -348,7 +363,7 @@ app.get('/api/dogs/matched', async (req, res) => {
 });
 
 
-app.post('/api/dog', authenticateToken, async (req, res) => {
+app.post('/api/dog', async (req, res) => {
   const { clerkId, breed, age, weight, emotionalStatus, activityLevel, vaccinationStatus } = req.body;
 
   if (!clerkId || !breed || !age || !weight || !emotionalStatus || !activityLevel || !vaccinationStatus) {
@@ -406,7 +421,7 @@ app.get('/api/user', async (req, res) => {
   }
 });
 
-app.patch('/api/user', authenticateToken, async (req, res) => {
+app.patch('/api/user', async (req, res) => {
   const { clerkId, birthDate } = req.body;
 
   if (!clerkId || !birthDate) {
@@ -431,7 +446,7 @@ app.patch('/api/user', authenticateToken, async (req, res) => {
 });
 
 
-app.patch('/api/user/image', authenticateToken, upload.single('image'), async (req, res) => {
+app.patch('/api/user/image', upload.single('image'), async (req, res) => {
   const { clerkId } = req.body;
 
   if (!clerkId || !req.file) {
@@ -462,7 +477,7 @@ app.patch('/api/user/image', authenticateToken, upload.single('image'), async (r
 
 
 
-app.patch('/api/user/location', authenticateToken, async (req, res) => {
+app.patch('/api/user/location', async (req, res) => {
   const { clerkId, latitude, longitude } = req.body;
 
   if (!clerkId || !latitude || !longitude) {
@@ -484,7 +499,7 @@ app.patch('/api/user/location', authenticateToken, async (req, res) => {
   }
 });
 
-app.get('/api/user/location', authenticateToken, async (req, res) => {
+app.get('/api/user/location', async (req, res) => {
   const { clerkId } = req.query;
 
   if (!clerkId) {
@@ -509,7 +524,7 @@ app.get('/api/user/location', authenticateToken, async (req, res) => {
   }
 });
 
-app.get('/api/users/locations', authenticateToken, async (req, res) => {
+app.get('/api/users/locations', async (req, res) => {
 const { clerkId, breed, maxAge, minAge, gender, castrated, noHeat, status } = req.query;
 
 if (!clerkId) {
@@ -557,7 +572,7 @@ try {
 });
 
 // "vaccination" and "protection"
-app.get('/api/medical/records', authenticateToken, async (req, res) => {
+app.get('/api/medical/records', async (req, res) => {
   const { type, clerkId } = req.query;
 
   if (!clerkId) {
@@ -576,7 +591,7 @@ app.get('/api/medical/records', authenticateToken, async (req, res) => {
   }
 });
 
-app.get('/api/vaccinations', authenticateToken, async (req, res) => {
+app.get('/api/vaccinations', async (req, res) => {
   const { clerkId } = req.query;
 
   if (!clerkId) {
@@ -607,7 +622,7 @@ app.get('/api/vaccinations', authenticateToken, async (req, res) => {
     return regex.test(dateString);
   };
   
-  app.post('/api/medical/record', authenticateToken, async (req, res) => {
+  app.post('/api/medical/record', async (req, res) => {
     const { clerkId, type, name, lastDate, nextDate } = req.body;
 
     if (!clerkId || !type || !name || !lastDate || !nextDate) {
@@ -630,7 +645,7 @@ app.get('/api/vaccinations', authenticateToken, async (req, res) => {
     }
 });
 
-app.patch('/api/dogs/status', authenticateToken, async (req, res) => {
+app.patch('/api/dogs/status', async (req, res) => {
   const { clerkId, status, castrated, inHeat } = req.body;
 
   if (!clerkId) {
@@ -660,7 +675,7 @@ app.patch('/api/dogs/status', authenticateToken, async (req, res) => {
 });
 
 
-app.get("/api/db-check", authenticateToken, async (req, res) => {
+app.get("/api/db-check", async (req, res) => {
   try {
     const result = await sql`SELECT NOW() AS current_time;`;
     res.status(200).json({ message: "DB connection successful!", time: result[0].current_time });
@@ -689,7 +704,7 @@ app.post('/api/walks', async (req, res) => {
   }
 });
 
-app.get('/api/walks', authenticateToken, async (req, res) => {
+app.get('/api/walks', async (req, res) => {
   const { clerkId } = req.query;
 
   if (!clerkId) {
@@ -715,7 +730,7 @@ app.get('/api/walks', authenticateToken, async (req, res) => {
   }
 });
 
-app.delete('/api/walks/:id', authenticateToken, async (req, res) => {
+app.delete('/api/walks/:id', async (req, res) => {
   const { id } = req.params;
   const { clerkId } = req.query;
 
@@ -746,7 +761,7 @@ app.delete('/api/walks/:id', authenticateToken, async (req, res) => {
   }
 });
   
-app.post('/api/save-token', authenticateToken, async (req, res) => {
+app.post('/api/save-token', async (req, res) => {
   const { clerkId, pushToken } = req.body;
 
   if (!clerkId || !pushToken) {
@@ -775,7 +790,7 @@ if (!admin.apps.length) {
   });
 }
 
-app.post("/api/friends/request", authenticateToken, async (req, res) => {
+app.post("/api/friends/request", async (req, res) => {
   const { senderId, receiverCode } = req.body;
 
   if (!senderId || !receiverCode) {
@@ -828,7 +843,7 @@ app.post("/api/friends/request", authenticateToken, async (req, res) => {
   }
 });
 
-app.post('/send-notification', authenticateToken, async (req, res) => {
+app.post('/send-notification', async (req, res) => {
   const { to, title, body } = req.body;
 
   if (!Expo.isExpoPushToken(to)) {
@@ -852,7 +867,7 @@ app.post('/send-notification', authenticateToken, async (req, res) => {
   }
 });
 
-app.get("/api/notifications", authenticateToken, async (req, res) => {
+app.get("/api/notifications", async (req, res) => {
   const { receiverId } = req.query;
 
   if (!receiverId) {
@@ -874,7 +889,7 @@ app.get("/api/notifications", authenticateToken, async (req, res) => {
 });
 
 
-app.post('/api/chats', authenticateToken, async (req, res) => {
+app.post('/api/chats', async (req, res) => {
   const { user1_id, user2_id } = req.body;
 
   if (!user1_id || !user2_id) {
@@ -906,7 +921,7 @@ app.post('/api/chats', authenticateToken, async (req, res) => {
 });
 
  
-app.get('/api/chats/:userId', authenticateToken, async (req, res) => {
+app.get('/api/chats/:userId', async (req, res) => {
   const { userId } = req.params;
 
   if (!userId) {
@@ -928,7 +943,7 @@ app.get('/api/chats/:userId', authenticateToken, async (req, res) => {
 });
 
  
-app.post('/api/messages', authenticateToken, async (req, res) => {
+app.post('/api/messages', async (req, res) => {
   const { chat_id, sender_id, receiver_id, text } = req.body;
 
   if (!chat_id || !sender_id || !receiver_id || !text) {
@@ -949,7 +964,7 @@ app.post('/api/messages', authenticateToken, async (req, res) => {
   }
 });
 
-app.get('/api/messages/:chatId', authenticateToken, async (req, res) => {
+app.get('/api/messages/:chatId', async (req, res) => {
   const { chatId } = req.params;
 
   if (!chatId) {
@@ -972,6 +987,24 @@ app.get('/api/messages/:chatId', authenticateToken, async (req, res) => {
 
 app.get("/", (req, res) => {
   res.send("Server is running!");
+});
+
+app.delete("/api/user", async (req, res) => {
+  try {
+    const { clerkId } = req.query;
+    if (!clerkId) {
+      return res.status(400).json({ error: "Clerk ID не передан" });
+    }
+
+    await db.query("DELETE FROM users WHERE clerk_id = $1", [clerkId]);
+    await db.query("DELETE FROM dogs WHERE clerk_id = $1", [clerkId]);
+    await db.query("DELETE FROM user_locations WHERE clerk_id = $1", [clerkId]);
+
+    return res.status(200).json({ message: "Профіль успішно видалено" });
+  } catch (error) {
+    console.error("Ошибка удаления профиля:", error);
+    return res.status(500).json({ error: "Помилка сервера" });
+  }
 });
 
 const PORT = process.env.PORT || 3000;

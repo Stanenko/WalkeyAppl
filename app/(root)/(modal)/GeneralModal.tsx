@@ -42,6 +42,8 @@ const GeneralModal: React.FC<GeneralModalProps> = ({ isVisible, onClose }) => {
   const [showSignOutConfirmation, setShowSignOutConfirmation] = useState(false);
   const navigation = useNavigation<NavigationProp>();
   const [breed, setBreed] = useState<string>("");
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -163,7 +165,27 @@ const GeneralModal: React.FC<GeneralModalProps> = ({ isVisible, onClose }) => {
     }
   };
   
-
+  const handleDeleteProfile = async () => {
+    setShowDeleteConfirmation(false);
+    try {
+      const response = await fetch(`${SERVER_URL}/api/user?clerkId=${user?.id}`, {
+        method: "DELETE",
+      });
+  
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Ошибка удаления: ${errorText}`);
+      }
+  
+      console.log("Профиль удален");
+      await signOut();
+      router.replace("/(auth)/welcome");
+    } catch (error) {
+      console.error("Ошибка при удалении профиля:", error);
+      Alert.alert("Помилка", "Не вдалося видалити профіль.");
+    }
+  };
+  
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "white" }}>
@@ -296,6 +318,28 @@ const GeneralModal: React.FC<GeneralModalProps> = ({ isVisible, onClose }) => {
               <Text style={{ color: "white", fontWeight: "bold" }}>Вийти з профіля</Text>
             </TouchableOpacity>
 
+            <TouchableOpacity
+              style={{
+                marginTop: 15,
+                padding: 15,
+                alignItems: "center",
+                width: "100%", 
+              }}
+              onPress={() => setShowDeleteConfirmation(true)}
+            >
+              <Text
+                style={{
+                  color: "red",
+                  fontWeight: "bold",
+                  textDecorationLine: "underline",
+                  fontSize: 16,
+                }}
+              >
+                Видалити профіль
+              </Text>
+            </TouchableOpacity>
+
+
             {showSignOutConfirmation && (
               <Modal transparent={true} animationType="fade">
                 <View
@@ -342,6 +386,30 @@ const GeneralModal: React.FC<GeneralModalProps> = ({ isVisible, onClose }) => {
                         <Text style={{ fontWeight: "bold" }}>Ні</Text>
                       </TouchableOpacity>
                     </View>
+                  </View>
+                </View>
+              </Modal>
+            )}
+
+            {showDeleteConfirmation && (
+              <Modal transparent={true} animationType="fade">
+                <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(0, 0, 0, 0.5)" }}>
+                  <View style={{ width: 300, padding: 20, backgroundColor: "white", borderRadius: 10, alignItems: "center" }}>
+                    <Text style={{ fontSize: 16, fontWeight: "bold", marginBottom: 20 }}>
+                      Ви впевнені, що хочете видалити профіль?
+                    </Text>
+                    <TouchableOpacity
+                      style={{ backgroundColor: "red", padding: 10, borderRadius: 5, marginBottom: 10 }}
+                      onPress={handleDeleteProfile}
+                    >
+                      <Text style={{ color: "white", fontWeight: "bold" }}>Так, видалити</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={{ padding: 10, borderRadius: 5 }}
+                      onPress={() => setShowDeleteConfirmation(false)}
+                    >
+                      <Text style={{ fontWeight: "bold" }}>Скасувати</Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
               </Modal>

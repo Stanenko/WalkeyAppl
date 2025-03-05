@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, ActivityIndicator, Image, ScrollView, Animated, TouchableOpacity, Switch, Dimensions, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Carousel from 'react-native-reanimated-carousel';
-import { useUser } from '@clerk/clerk-expo';
+import { useUser, useAuth } from '@clerk/clerk-expo';
 import { icons } from "@/constants/svg";
 import { images } from "@/constants/index";
 import { useNavigation } from '@react-navigation/native';
@@ -16,14 +16,31 @@ import { useToggleStore } from "@/store/toggleStore";
 import useFetchDogs from "@/hooks/useFetchDogs";
 import { useMatchingStore } from '@/store/matchingStore';
 
-const SERVER_URL = "https://walkey-production.up.railway.app";
+const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL;
+console.log("SERVER_URL:", process.env.EXPO_PUBLIC_SERVER_URL);
 
-const fetchDataFromAPI = async (url: string, errorMessage: string): Promise<any> => {
+const fetchDataFromAPI = async (url: string, errorMessage: string, includeAuth = false, getToken?: () => Promise<string | null>): Promise<any> => {
   try {
-    const response = await fetch(url);
+    const headers: HeadersInit = { "Content-Type": "application/json" };
+
+    if (includeAuth && getToken) {
+      const token = await getToken();
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+        console.log(`📡 Отправка запроса на ${url} с токеном: ${token}`);
+      } else {
+        console.warn("⚠️ Токен не найден!");
+      }
+    }
+
+    console.log(`📡 Запрос на ${url} с заголовками:`, headers);
+    const response = await fetch(url, { headers });
+
     if (!response.ok) {
+      console.error(`❌ Ошибка запроса ${url}:`, await response.text());
       throw new Error(errorMessage);
     }
+
     return await response.json();
   } catch (error) {
     console.error(errorMessage, error);
@@ -32,6 +49,9 @@ const fetchDataFromAPI = async (url: string, errorMessage: string): Promise<any>
 };
 
 const windowWidth = Dimensions.get('window').width;
+
+const { user, isLoaded } = useUser();
+const { getToken } = useAuth();
 
 const slideHeight = 200;
 
@@ -246,6 +266,20 @@ const SliderComponent: React.FC<SliderComponentProps> = ({ clerkId }) => {
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
+
+useEffect(() => {
+  const checkToken = async () => {
+    if (isLoaded) {
+      const token = await getToken();
+      console.log("🔑 Полученный токен:", token);
+    } else {
+      console.log("⏳ Ожидание загрузки пользователя...");
+    }
+  };
+
+  checkToken();
+}, [isLoaded]);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -444,7 +478,7 @@ const Home = () => {
       name: dog.name || "Без имени",
       similarity_percentage: dog.similarity_percentage || 0,
       status: dog.status || "вдома",
-      gender: dog.gender || "unknown",
+      gender: dog.gender === "male" || dog.gender === "female" ? dog.gender : undefined,
       breed: dog.breed || "Не указано",
       age: dog.age || 0, 
       walkingPlace: dog.walkingPlace || "Не указано",
@@ -457,18 +491,22 @@ const Home = () => {
   };
   
   const fetchUserData = async () => {
-    if (!user || !user.id) return;
+    if (!user || !user.id || !isLoaded) return;
   
     try {
-      setIsLoadingUser(true); 
+      setIsLoadingUser(true);
       const userData = await fetchDataFromAPI(
         `${SERVER_URL}/api/user?clerkId=${user.id}`,
-        "Error fetching user data"
+        "Ошибка загрузки данных пользователя",
+        true,
+        getToken
       );
   
       const dogData = await fetchDataFromAPI(
         `${SERVER_URL}/api/dogs/user?clerkId=${user.id}`,
-        "Error fetching dog data"
+        "Ошибка загрузки данных собаки",
+        true,
+        getToken
       );
   
       if (userData) {
@@ -485,11 +523,12 @@ const Home = () => {
         setBreed("Не вказано");
       }
     } catch (error) {
-      console.error("Error fetching user or dog data:", error);
+      console.error("Ошибка загрузки данных пользователя или собаки:", error);
     } finally {
-      setIsLoadingUser(false); 
+      setIsLoadingUser(false);
     }
   };
+  
 
   useEffect(() => {
     if (user?.id) {
@@ -499,18 +538,25 @@ const Home = () => {
   
   const toggleStatus = async () => {
     try {
-      const newStatus = isToggled ? 'вдома' : 'гуляє';
+      const { getToken } = useAuth();
+      const token = await getToken();
+      if (!token) throw new Error("Не удалось получить токен");
+  
+      const newStatus = isToggled ? "вдома" : "гуляє";
       setIsToggled(!isToggled);
   
       await fetch(`${SERVER_URL}/api/dogs/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
         body: JSON.stringify({ clerkId: user?.id, status: newStatus }),
       });
     } catch (error) {
-      console.error('Ошибка обновления статуса:', error);
+      console.error("Ошибка обновления статуса:", error);
     }
-  };  
+  };
 
   const formatUniqueCode = (code: string | undefined): string => {
     if (!code) return "0000 0000 0000 0000";
@@ -541,7 +587,8 @@ const Home = () => {
       try {
         const userData = await fetchDataFromAPI(
           `${SERVER_URL}/api/user?clerkId=${user?.id}`,
-          "Error fetching user data"
+          "Error fetching user data",
+          true 
         );
   
         if (userData) {
