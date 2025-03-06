@@ -742,7 +742,7 @@ const Home = () => {
             }}
           >
             <Text className="text-center text-white font-bold mr-2">
-              {isToggled ? "Знайти нових друзів" : "Почати прогулянку"}
+              {isToggled ? "Знайти нових друзів" : "Почати прогулянку!"}
             </Text>
             <icons.WhitePawIcon width={24} height={24} />
           </TouchableOpacity>
