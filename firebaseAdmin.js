@@ -1,10 +1,14 @@
 const admin = require("firebase-admin");
+const path = require("path");
+const fs = require("fs");
 
-if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
-  throw new Error("FIREBASE_SERVICE_ACCOUNT is not set in environment variables.");
+const serviceAccountPath = path.join(__dirname, "serviceAccountKey.json");
+
+if (!fs.existsSync(serviceAccountPath)) {
+  throw new Error("Файл serviceAccountKey.json не найден. Убедитесь, что он есть в корне проекта.");
 }
 
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+const serviceAccount = require(serviceAccountPath);
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
