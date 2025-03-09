@@ -34,9 +34,8 @@ const requestExpoPushToken = async (clerkId: string): Promise<void> => {
     }
 
     const pushToken = (await Notifications.getExpoPushTokenAsync()).data;
-    console.log("Получен Expo Push Token:", pushToken);
 
-    const API_URL = process.env.EXPO_PUBLIC_LOCAL_SERVER_URL;
+    const API_URL = process.env.EXPO_PUBLIC_SERVER_URL;
     await fetch(`${API_URL}/api/save-token`, {
       method: "POST",
       headers: {
@@ -58,7 +57,7 @@ const Home = () => {
   const { isSignedIn, userId } = useAuth();
 
   useEffect(() => {
-    const API_URL = process.env.EXPO_PUBLIC_LOCAL_SERVER_URL;
+    const API_URL = process.env.EXPO_PUBLIC_SERVER_URL;
 
     fetch(`${API_URL}/api/test`, {
       method: "GET",
@@ -72,10 +71,11 @@ const Home = () => {
     }
   }, [userId]);
 
-  if (isSignedIn) {
-    return <Redirect href="/(root)/(tabs)/home" />;
+  if (!isSignedIn) {
+    return <Redirect href="/(auth)/welcome" />;
   }
-  return <Redirect href="/(auth)/welcome" />;
+  
+  return <Redirect href="/(root)/(tabs)/home" />;
 };
 
 export default Home;

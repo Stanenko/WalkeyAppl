@@ -145,8 +145,6 @@ const match_dogs = (target_dog, dogs, radius_km = 500) => {
     for (const dog of dogs) {
         if (dog.dog_id === target_dog.dog_id) continue;
 
-        console.log("Dog1 (target_dog):", target_dog, "Dog2 (current dog):", dog);
-
         const distance = calculate_geographic_distance(
             { latitude: target_dog.latitude, longitude: target_dog.longitude },
             { latitude: dog.latitude, longitude: dog.longitude }

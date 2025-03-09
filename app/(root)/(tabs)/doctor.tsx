@@ -45,8 +45,6 @@ const Doctor = () => {
         const response = await fetch(`${SERVER_URL}/api/user?clerkId=${user.id}`);
         const data = await response.json();
   
-        console.log("Данные из API:", data);
-  
         if (data.gender) {
           const normalizedGender = data.gender.toLowerCase().trim();
           setGender(normalizedGender === "male" ? "male" : "female");
@@ -82,8 +80,6 @@ const Doctor = () => {
         nextDate: record.nextdate ? new Date(record.nextdate).toISOString() : null,
         type: record.type as 'vaccination' | 'protection',
       }));
-  
-      console.log(`${type.toUpperCase()} formatted data:`, formattedData);
   
       setData(formattedData);
     } catch (error) {
@@ -151,7 +147,7 @@ const Doctor = () => {
       }
   
       const updatedData = await response.json();
-      console.log("✅ Обновленный статус собаки:", updatedData);
+      console.log("Обновленный статус собаки:", updatedData);
   
       fetchUserDogData();
     } catch (error) {
@@ -168,7 +164,6 @@ const Doctor = () => {
       if (!response.ok) throw new Error("Ошибка загрузки данных собаки");
   
       const data = await response.json();
-      console.log("📌 Получены данные собаки:", data);
   
       if (data.length > 0) {
         setIsSterilized(data[0].castrated);
@@ -229,7 +224,6 @@ const Doctor = () => {
       </View>
     );
   };
-  console.log("Gender в SterilizationToggle:", gender);
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: 'white', paddingHorizontal: 20 }}>

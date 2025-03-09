@@ -154,22 +154,18 @@ const Map = () => {
   const { setMatching } = useMatchingStore();
 
   const openDogProfile = (dog: any) => {
-    console.log("🐶 Открываем профиль собаки:", dog.name, "ID:", dog.dog_id);
-  
     if (!dog.dog_id) {
-      console.warn("⚠️ У собаки нет `dog_id`, проверяем на соответствие существующим данным.");
+      console.warn("У собаки нет `dog_id`, проверяем на соответствие существующим данным.");
       const foundDog = dogs.find(d => d.name === dog.name);
       if (foundDog) {
         dog.dog_id = foundDog.dog_id; 
-        console.log("✅ Найден существующий `dog_id`:", dog.dog_id);
       } else {
-        console.warn("⚠️ `dog_id` не найден, используем временный.");
+        console.warn("`dog_id` не найден, используем временный.");
         dog.dog_id = `temp_${Date.now()}`;
       }
     }
   
     const { matchingData } = useMatchingStore.getState();
-    console.log("🔍 MatchingData перед открытием:", matchingData);
   
     const similarity = matchingData[dog.dog_id] ?? dog.similarity_percentage ?? 0;
   
@@ -178,7 +174,6 @@ const Map = () => {
       similarity_percentage: similarity,
     });
   
-    console.log("🔸 Итоговое значение метчинга:", similarity);
     setIsModalVisible(true);
   };  
   
@@ -206,7 +201,6 @@ const forceUpdateMap = () => {
 };
 
 useEffect(() => {
-  console.log("🟢 Вызов fetchOtherUsersWithFilters()");
   fetchOtherUsersWithFilters();
 }, []); 
 
@@ -220,8 +214,6 @@ const fetchOtherUsersWithFilters = async () => {
 
     const response = await fetch(`${SERVER_URL}/api/users/locations?clerkId=${user.id}${queryString}`);
     const data = await response.json();
-
-    console.log("✅ ✅ ✅ Fetched dogs:", data);
 
     data.forEach((dog: any) => {
       if (dog.dog_id && dog.similarity_percentage !== undefined) {
@@ -513,7 +505,6 @@ const applyFilters = async () => {
                   {location.name}
                 </Text>
               )}
-        {/* Змінила до */}
       </View>
     </Marker>
   );

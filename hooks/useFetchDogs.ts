@@ -43,11 +43,9 @@ const useFetchDogs = (user: UserResource | null, SERVER_URL: string) => {
       try {
         const userId = user?.id;
         if (!userId) {
-          console.error("❌ User ID is not defined");
+          console.error("User ID is not defined");
           return;
         }
-
-        console.log("📡 Запрос API для пользователя:", userId);
 
         const [userResponse, userLocationResponse, dogsResponse] = await Promise.all([
           fetch(`${SERVER_URL}/api/user?clerkId=${userId}`),
@@ -56,18 +54,16 @@ const useFetchDogs = (user: UserResource | null, SERVER_URL: string) => {
         ]);
 
         if (!userResponse.ok || !userLocationResponse.ok || !dogsResponse.ok) {
-          console.error("🚨 Ошибка запросов к API");
-          console.log("❌ userResponse:", userResponse.status, await userResponse.text());
-          console.log("❌ userLocationResponse:", userLocationResponse.status, await userLocationResponse.text());
-          console.log("❌ dogsResponse:", dogsResponse.status, await dogsResponse.text());
+          console.error("Ошибка запросов к API");
+          console.log("userResponse:", userResponse.status, await userResponse.text());
+          console.log("userLocationResponse:", userLocationResponse.status, await userLocationResponse.text());
+          console.log("dogsResponse:", dogsResponse.status, await dogsResponse.text());
           return;
         }
 
         const userData: UserResource = await userResponse.json();
         const userLocationData = await userLocationResponse.json();
         const dogsData: DogInterface[] = await dogsResponse.json();
-
-        console.log("📌 Полученные собаки:", dogsData);
 
         const myDog = new Dog(
           userId,
@@ -84,8 +80,6 @@ const useFetchDogs = (user: UserResource | null, SERVER_URL: string) => {
           userData.anti_tick !== undefined ? userData.anti_tick : true
         );
 
-        console.log("🐶 Данные пользователя:", myDog);
-
         const allDogs = dogsData.map((dog, index) => ({
           ...dog,
           dog_id: dog.dog_id || `generated_${index}`,
@@ -94,33 +88,20 @@ const useFetchDogs = (user: UserResource | null, SERVER_URL: string) => {
           latitude: parseFloat(dog.latitude?.toString() || "0"),
           longitude: parseFloat(dog.longitude?.toString() || "0"),
           status: dog.status ?? "вдома",
-        }));        
-            
-
-        console.log(
-          "📍 Координаты собак до фильтрации:",
-          allDogs.map((dog) => ({
-            name: dog.breed,
-            latitude: dog.latitude,
-            longitude: dog.longitude,
-          }))
-        );
+        }));
 
         const matchedDogs = match_dogs(myDog, allDogs, 500);
-        console.log("✅ Совпадения собак:", matchedDogs);
-
         matchedDogs.forEach((dog) => {
           if (dog.dog_id && typeof dog.dog_id === "string") {
-            console.log(`🔹 Устанавливаем метчинг для ${dog.name} (ID: ${dog.dog_id}): ${dog.similarity_percentage}%`);
             setMatching(dog.dog_id, dog.similarity_percentage);
           } else {
-            console.warn(`⚠️ Собака ${dog.name} не имеет корректного dog_id, пропускаем`);
+            console.warn(`Собака ${dog.name} не имеет корректного dog_id, пропускаем`);
           }
         });
 
         setDogs(matchedDogs);
       } catch (error) {
-        console.error("❌ Ошибка загрузки данных:", error);
+        console.error("Ошибка загрузки данных:", error);
       } finally {
         setLoading(false);
       }

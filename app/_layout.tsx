@@ -1,14 +1,12 @@
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import { useEffect, Dispatch, SetStateAction } from "react";
+import { useEffect } from "react";
 import "react-native-reanimated";
-
-import { ClerkProvider, ClerkLoaded, useUser } from "@clerk/clerk-expo";
+import { ClerkProvider, ClerkLoaded } from "@clerk/clerk-expo";
 import { tokenCache } from "@/lib/auth";
-import { useUserStore } from "@/store/useUserStore";
 
-const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY!;
+const publishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY;
 
 SplashScreen.preventAutoHideAsync();
 
@@ -23,8 +21,6 @@ export default function RootLayout() {
     "Jakarta-SemiBold": require("../assets/fonts/PlusJakartaSans-SemiBold.ttf"),
   });
 
-  const { setUserData, setDogsData } = useUserStore();
-
   useEffect(() => {
     if (loaded) {
       SplashScreen.hideAsync();
@@ -36,60 +32,20 @@ export default function RootLayout() {
   }
 
   if (!publishableKey) {
-    throw new Error(
-      "Missing Publishable Key. Please set EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY in your .env"
-    );
+    console.error("Ошибка: EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY не установлен в .env");
+    return null;
   }
 
   return (
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
       <ClerkLoaded>
-          <AppContent setUserData={setUserData} setDogsData={setDogsData} />
+        <Stack>
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          <Stack.Screen name="(root)" options={{ headerShown: false }} />
+          <Stack.Screen name="+not-found" />
+        </Stack>
       </ClerkLoaded>
     </ClerkProvider>
-  );
-}
-
-type AppContentProps = {
-  setUserData: Dispatch<SetStateAction<any>>;
-  setDogsData: Dispatch<SetStateAction<any>>;
-};
-
-function AppContent({ setUserData, setDogsData }: AppContentProps) {
-  const { user } = useUser();
-
-  useEffect(() => {
-    const fetchUserData = async () => {
-      if (!user || !user.id) return;
-
-      try {
-        const SERVER_URL = "https://walkey-production.up.railway.app";
-
-        const userResponse = await fetch(
-          `${SERVER_URL}/api/user?clerkId=${user.id}`
-        );
-        const userData = await userResponse.json();
-        setUserData(userData);
-
-        const dogsResponse = await fetch(
-          `${SERVER_URL}/api/users/locations?clerkId=${user.id}`
-        );
-        const dogsData = await dogsResponse.json();
-        setDogsData(dogsData);
-      } catch (error) {
-        console.error("Ошибка загрузки данных:", error);
-      }
-    };
-
-    fetchUserData();
-  }, [user]);
-
-  return (
-    <Stack>
-      <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-      <Stack.Screen name="(root)" options={{ headerShown: false }} />
-      <Stack.Screen name="+not-found" />
-    </Stack>
   );
 }

@@ -120,8 +120,6 @@ const authenticateToken = async (req, res, next) => {
     return res.status(401).json({ error: "Нет доступа, требуется авторизация" });
   }
 
-  console.log(`🔍 Проверка токена для ${req.originalUrl}: ${token}`);
-
   try {
     const response = await fetch("https://api.clerk.dev/v1/tokens/verify", {
       method: "POST",
@@ -135,15 +133,15 @@ const authenticateToken = async (req, res, next) => {
     const data = await response.json();
 
     if (!response.ok || !data.valid) {
-      console.error("❌ Токен недействителен:", data);
+      console.error("Токен недействителен:", data);
       return res.status(403).json({ error: "Токен истёк или недействителен" });
     }
 
-    console.log(`✅ Токен успешно верифицирован для ${req.originalUrl}`);
+    console.log(`Токен успешно верифицирован для ${req.originalUrl}`);
     req.user = data;
     next();
   } catch (err) {
-    console.error("❌ Ошибка проверки токена:", err);
+    console.error("Ошибка проверки токена:", err);
     res.status(500).json({ error: "Ошибка сервера" });
   }
 };

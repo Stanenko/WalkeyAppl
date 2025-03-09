@@ -27,17 +27,15 @@ const fetchDataFromAPI = async (url: string, errorMessage: string, includeAuth =
       const token = await getToken();
       if (token) {
         headers["Authorization"] = `Bearer ${token}`;
-        console.log(`📡 Отправка запроса на ${url} с токеном: ${token}`);
+        console.log(`Отправка запроса на ${url} с токеном: ${token}`);
       } else {
-        console.warn("⚠️ Токен не найден!");
+        console.warn("Токен не найден!");
       }
     }
-
-    console.log(`📡 Запрос на ${url} с заголовками:`, headers);
     const response = await fetch(url, { headers });
 
     if (!response.ok) {
-      console.error(`❌ Ошибка запроса ${url}:`, await response.text());
+      console.error(`Ошибка запроса ${url}:`, await response.text());
       throw new Error(errorMessage);
     }
 
@@ -49,9 +47,6 @@ const fetchDataFromAPI = async (url: string, errorMessage: string, includeAuth =
 };
 
 const windowWidth = Dimensions.get('window').width;
-
-const { user, isLoaded } = useUser();
-const { getToken } = useAuth();
 
 const slideHeight = 200;
 
@@ -266,20 +261,6 @@ const SliderComponent: React.FC<SliderComponentProps> = ({ clerkId }) => {
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
-
-useEffect(() => {
-  const checkToken = async () => {
-    if (isLoaded) {
-      const token = await getToken();
-      console.log("🔑 Полученный токен:", token);
-    } else {
-      console.log("⏳ Ожидание загрузки пользователя...");
-    }
-  };
-
-  checkToken();
-}, [isLoaded]);
-
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -432,7 +413,8 @@ useEffect(() => {
 };
 
 const Home = () => {
-  const { user } = useUser();
+  const { user, isSignedIn } = useUser();
+  const { getToken } = useAuth();
   const navigation = useNavigation();
   const wasToggledOn = useRef(false);
   const [userName, setUserName] = useState('Байт');
@@ -490,51 +472,43 @@ const Home = () => {
     setModalVisible(true); 
   };
   
-  const fetchUserData = async () => {
-    if (!user || !user.id || !isLoaded) return;
+  useEffect(() => {
+    fetchUserData();
+  }, [user?.id]);
   
+  const fetchUserData = async () => {
+    if (!isSignedIn || !user?.id) return;
     try {
       setIsLoadingUser(true);
-      const userData = await fetchDataFromAPI(
-        `${SERVER_URL}/api/user?clerkId=${user.id}`,
-        "Ошибка загрузки данных пользователя",
-        true,
-        getToken
-      );
-  
-      const dogData = await fetchDataFromAPI(
-        `${SERVER_URL}/api/dogs/user?clerkId=${user.id}`,
-        "Ошибка загрузки данных собаки",
-        true,
-        getToken
-      );
-  
-      if (userData) {
-        setUserName(userData.name || "Без имени");
-        setGender(userData.gender || "unknown");
-        setBirthDate(userData.birth_date || "");
-        setImage(userData.image || "https://via.placeholder.com/150");
-        setUniqueCode(userData.unique_code || "Не вказано");
-      }
-  
-      if (dogData && dogData.length > 0) {
-        setBreed(dogData[0].breed || "Не вказано");
-      } else {
-        setBreed("Не вказано");
-      }
+      const token = await getToken();
+      const response = await fetch(`${SERVER_URL}/api/user?clerkId=${user.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await response.json();
+
+      setUserName(data.name || "Без имени");
+      setImage(data.image || "https://via.placeholder.com/150");
+      setBirthDate(data.birth_date || "Не указано");
+      setUniqueCode(data.unique_code || "");
+      setGender(data.gender || "Не указано");      
     } catch (error) {
-      console.error("Ошибка загрузки данных пользователя или собаки:", error);
+      console.error("Ошибка загрузки данных пользователя:", error);
     } finally {
       setIsLoadingUser(false);
     }
   };
   
-
   useEffect(() => {
-    if (user?.id) {
-      fetchUserData();
-    }
-  }, [user?.id]);
+    const checkToken = async () => {
+      if (isSignedIn) {
+        const token = await getToken();
+      } else {
+        console.log("Ожидание загрузки пользователя...");
+      }
+    };
+  
+    checkToken();
+  }, [isSignedIn]);
   
   const toggleStatus = async () => {
     try {

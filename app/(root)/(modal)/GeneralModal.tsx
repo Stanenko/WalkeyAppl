@@ -134,7 +134,7 @@ const GeneralModal: React.FC<GeneralModalProps> = ({ isVisible, onClose }) => {
   
         if (response.ok) {
           const result = await response.json();
-          console.log("Фото загружено. URL:", result.url);
+          console.log("Фото загружено");
   
           setImage(result.url);
           Alert.alert("Успешно", "Фото успешно загружено!");
